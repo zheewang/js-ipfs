@@ -1,10 +1,13 @@
 all: help
 
-test: test_expensive
+test: test_unit test_expensive
 
 test_short: test_sharness_short
 
 test_expensive: test_sharness_expensive
+
+test_unit:
+	@npm test
 
 test_sharness_short:
 	$(MAKE) -j1 -C test/sharness/
