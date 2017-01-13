@@ -1,11 +1,11 @@
 node {
 	stage('fetch') {
-  git branch: 'docker-testing', url: 'https://github.com/victorbjelkholm/js-ipfs/'
+		checkout scm
 	}
 	stage('build') {
 		sh "docker build -t ipfs/js-ipfs-test ."
 	}
 	stage('test') {
-		sh "docker run --privileged -it ipfs/js-ipfs-test npm test"
+		sh "docker run --privileged -t ipfs/js-ipfs-test npm test"
 	}
 }
