@@ -2,7 +2,6 @@
 
 'use strict'
 
-/*
 const test = require('interface-ipfs-core')
 const IPFSFactory = require('../../utils/ipfs-factory-instance')
 
@@ -19,4 +18,3 @@ const common = {
 }
 
 test.dht(common)
-*/
