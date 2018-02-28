@@ -22,13 +22,19 @@ module.exports = (repoPath, opts) => {
   const env = _.clone(process.env)
   env.IPFS_PATH = repoPath
 
+
   const config = Object.assign({}, {
     stripEof: false,
     env: env,
-    timeout: 60 * 1000
+    timeout: 5 * 1000
   }, opts)
 
-  const exec = (args) => execa(`${process.cwd()}/src/cli/bin.js`, args, config)
+  // console.log(config)
+
+  const exec = (args) => {
+    console.log('running', args)
+    return execa(`${process.cwd()}/src/cli/bin.js`, args, config)
+  }
 
   function ipfs () {
     let args = Array.from(arguments)

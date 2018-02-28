@@ -61,7 +61,7 @@ function testSignal (ipfs, sig) {
   })
 }
 
-describe('daemon', () => {
+describe.only('daemon', () => {
   let repoPath
   let ipfs
 
@@ -75,14 +75,18 @@ describe('daemon', () => {
   it('do not crash if Addresses.Swarm is empty', function (done) {
     this.timeout(100 * 1000)
 
+    console.log('Gonna run')
     ipfs('init').then(() => {
+      console.log('Init done')
       return ipfs('config', 'Addresses', JSON.stringify({
         API: '/ip4/127.0.0.1/tcp/0',
         Gateway: '/ip4/127.0.0.1/tcp/0'
       }), '--json')
     }).then(() => {
+      console.log('Config set')
       return ipfs('daemon')
     }).then((res) => {
+      console.log('Daemon running')
       expect(res).to.have.string('Daemon is ready')
       done()
     }).catch((err) => done(err))
