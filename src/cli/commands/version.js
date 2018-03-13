@@ -33,7 +33,7 @@ module.exports = {
   },
 
   handler (argv) {
-    argv.ipfs.version((err, data) => {
+    argv.ipfs.version({ repo: argv.all || argv.repo }, (err, data) => {
       if (err) {
         throw err
       }

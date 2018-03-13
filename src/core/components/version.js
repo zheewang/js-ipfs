@@ -11,16 +11,22 @@ module.exports = function version (self) {
       opts = {}
     }
 
-    self.repo.version((err, repoVersion) => {
-      if (err) {
-        callback(err)
-      }
+    if (opts.repo) {
+      self.repo.version((err, repoVersion) => {
+        if (err) {
+          callback(err)
+        }
 
-      callback(null, {
-        version: pkg.version,
-        repo: repoVersion,
-        commit: ''
+        callback(null, {
+          version: pkg.version,
+          repo: repoVersion,
+          commit: ''
+        })
       })
-    })
+    } else {
+      callback(null, {
+        version: pkg.version
+      })
+    }
   })
 }
