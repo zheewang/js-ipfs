@@ -88,13 +88,15 @@ exports.normalizeHashes = function normalizeHashes (ipfs, ipfsPaths, callback) {
         // done tracing, we have the target node
         return validate(obj.multihash)
       }
+
       const linkName = links.shift()
       const nextLink = obj.links.find(link => link.name === linkName)
       if (!nextLink) {
         return cb(new Error(
-          `no link named '${linkName}' under ${obj.toJSON().multihash}`
+          `no link named '${linkName}' under ${obj.multihash}`
         ))
       }
+
       ipfs.object.get(nextLink.multihash, pathFn)
     }
     ipfs.object.get(rootHash, pathFn)
