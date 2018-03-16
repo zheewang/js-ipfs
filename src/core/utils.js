@@ -61,12 +61,14 @@ exports.normalizeHashes = function normalizeHashes (ipfs, ipfsPaths, callback) {
   }
   mapSeries(ipfsPaths, (path, cb) => {
     const validate = (mh) => {
+      let error, result
       try {
         multihashes.validate(mh)
-        cb(null, mh)
+        result = mh
       } catch (err) {
-        cb(err)
+        error = err
       }
+      cb(error, result)
     }
     if (typeof path !== 'string') {
       return validate(path)
