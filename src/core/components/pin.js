@@ -8,6 +8,7 @@ const pinSet = require('./pin-set')
 const normalizeHashes = require('../utils').normalizeHashes
 const promisify = require('promisify-es6')
 const multihashes = require('multihashes')
+const Key = require('interface-datastore').Key
 const each = require('async/each')
 const series = require('async/series')
 const waterfall = require('async/waterfall')
@@ -23,7 +24,7 @@ module.exports = function pin (self) {
   let recursivePins = new Set()
   let internalPins = new Set()
 
-  const pinDataStoreKey = '/local/pins'
+  const pinDataStoreKey = new Key('/local/pins')
 
   const repo = self._repo
   const dag = self.dag
