@@ -16,7 +16,7 @@ const utils = require('../../src/core/utils')
 describe('utils', () => {
   const rootHashString = 'QmUhUuiTKkkK8J6JZ9zmj8iNHPuNfGYcszgRumzhHBxEEU'
   const rootHash = multihashes.fromB58String(rootHashString)
-  const rootPathString = `/ipfs/${rootHashString}/`
+  const rootPathString = `/ipfs/${rootHashString}`
   const aboutHashString = 'QmZTR5bcpQD7cFgTorqxZDYaew1Wqgfbd2ud9QqGPAkK2V'
   const aboutHash = multihashes.fromB58String(aboutHashString)
   const aboutPathString = `/ipfs/${rootHashString}/about`
@@ -129,6 +129,20 @@ describe('utils', () => {
         expect(hashes.length).to.equal(2)
         expect(hashes[0]).to.deep.equal(aboutHash)
         expect(hashes[1]).to.deep.equal(rootHash)
+        done()
+      })
+    })
+
+    it('should error on invalid hashes', function (done) {
+      utils.normalizeHashes(node, '/ipfs/asdlkjahsdfkjahsdfd', err => {
+        expect(err).to.exist()
+        done()
+      })
+    })
+
+    it('should error when a link doesn\'t exist', function (done) {
+      utils.normalizeHashes(node, `${rootPathString}/fusion`, err => {
+        expect(err).to.exist()
         done()
       })
     })

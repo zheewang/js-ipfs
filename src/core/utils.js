@@ -64,17 +64,23 @@ exports.normalizeHashes = function normalizeHashes (ipfs, ipfsPaths, callback) {
       try {
         multihashes.validate(mh)
         cb(null, mh)
-      } catch (err) { cb(err) }
+      } catch (err) {
+        cb(err)
+      }
     }
     if (typeof path !== 'string') {
       return validate(path)
     }
     const {error, root, links} = exports.parseIpfsPath(path)
+    if (error) {
+      return cb(error)
+    }
+
     const rootHash = multihashes.fromB58String(root)
-    if (error) return cb(error)
     if (!links.length) {
       return validate(rootHash)
     }
+
     // recursively follow named links to the target node
     const pathFn = (err, obj) => {
       if (err) { return cb(err) }
@@ -86,7 +92,7 @@ exports.normalizeHashes = function normalizeHashes (ipfs, ipfsPaths, callback) {
       const nextLink = obj.links.find(link => link.name === linkName)
       if (!nextLink) {
         return cb(new Error(
-          `no link named ${linkName} under ${obj.toJSON().Hash}`
+          `no link named '${linkName}' under ${obj.toJSON().multihash}`
         ))
       }
       ipfs.object.get(nextLink.multihash, pathFn)
