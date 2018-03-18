@@ -47,15 +47,13 @@ describe('utils', () => {
     })
 
     it('returns error for malformed path', function () {
-      const result = utils.parseIpfsPath(`${rootHashString}//about`)
-      expect(result.error).to.be.instanceof(Error)
-        .and.have.property('message', 'invalid ipfs ref path')
+      const fn = () => utils.parseIpfsPath(`${rootHashString}//about`)
+      expect(fn).to.throw('invalid ipfs ref path')
     })
 
-    it('returns error if root is not a valid CID', function () {
-      const result = utils.parseIpfsPath('invalid/ipfs/path')
-      expect(result.error).to.be.instanceof(Error)
-        .and.have.property('message', 'invalid ipfs ref path')
+    it('returns error if root is not a valid multihash', function () {
+      const fn = () => utils.parseIpfsPath('invalid/ipfs/path')
+      expect(fn).to.throw('invalid ipfs ref path')
     })
   })
 
