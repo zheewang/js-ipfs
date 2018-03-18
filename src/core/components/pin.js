@@ -5,7 +5,7 @@ const DAGNode = dagPB.DAGNode
 const DAGLink = dagPB.DAGLink
 const CID = require('cids')
 const pinSet = require('./pin-set')
-const normalizeHashes = require('../utils').normalizeHashes
+const resolveIpfsPaths = require('../utils').resolveIpfsPaths
 const promisify = require('promisify-es6')
 const multihashes = require('multihashes')
 const Key = require('interface-datastore').Key
@@ -46,14 +46,15 @@ module.exports = function pin (self) {
 
     set: pinSet(dag),
 
-    add: promisify((hashes, options, callback) => {
+    add: promisify((paths, options, callback) => {
       if (typeof options === 'function') {
         callback = options
         options = null
       }
       callback = once(callback)
       const recursive = options ? options.recursive : true
-      normalizeHashes(self, hashes, (err, mhs) => {
+
+      resolveIpfsPaths(self, paths, (err, mhs) => {
         if (err) { return callback(err) }
         // verify that each hash can be pinned
         series(mhs.map(multihash => cb => {
@@ -108,7 +109,7 @@ module.exports = function pin (self) {
       })
     }),
 
-    rm: promisify((hashes, options, callback) => {
+    rm: promisify((paths, options, callback) => {
       let recursive = true
       if (typeof options === 'function') {
         callback = options
@@ -116,7 +117,7 @@ module.exports = function pin (self) {
         recursive = false
       }
       callback = once(callback)
-      normalizeHashes(self, hashes, (err, mhs) => {
+      resolveIpfsPaths(self, paths, (err, mhs) => {
         if (err) { return callback(err) }
         // verify that each hash can be unpinned
         series(mhs.map(multihash => cb => {
@@ -157,19 +158,19 @@ module.exports = function pin (self) {
       })
     }),
 
-    ls: promisify((hashes, options, callback) => {
+    ls: promisify((paths, options, callback) => {
       let type = pin.types.all
-      if (typeof hashes === 'function') {
-        callback = hashes
+      if (typeof paths === 'function') {
+        callback = paths
         options = null
-        hashes = null
+        paths = null
       }
       if (typeof options === 'function') {
         callback = options
       }
-      if (hashes && hashes.type) {
-        options = hashes
-        hashes = null
+      if (paths && paths.type) {
+        options = paths
+        paths = null
       }
       if (options && options.type) {
         type = options.type.toLowerCase()
@@ -180,9 +181,9 @@ module.exports = function pin (self) {
           `Invalid type '${type}', must be one of {direct, indirect, recursive, all}`
         ))
       }
-      if (hashes) {
+      if (paths) {
         // check the pinned state of specific hashes
-        normalizeHashes(self, hashes, (err, mhs) => {
+        resolveIpfsPaths(self, paths, (err, mhs) => {
           if (err) { return callback(err) }
           series(mhs.map(multihash => cb => {
             pin.isPinnedWithType(multihash, pin.types.all, (err, res) => {

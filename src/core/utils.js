@@ -1,7 +1,8 @@
 'use strict'
 
 const multihashes = require('multihashes')
-const mapSeries = require('async/mapSeries')
+const map = require('async/map')
+// const mapSeries = require('async/mapSeries')
 const CID = require('cids')
 const isIPFS = require('is-ipfs')
 
@@ -20,11 +21,9 @@ exports.OFFLINE_ERROR = 'This command must be run in online mode. Try running \'
  */
 exports.parseIpfsPath = function parseIpfsPath (ipfsPath) {
   const matched = ipfsPath.match(/^(?:\/ipfs\/)?([^/]+(?:\/[^/]+)*)\/?$/)
-  const errorResult = {
-    error: new Error('invalid ipfs ref path')
-  }
+  const invalidPathErr = new Error('invalid ipfs ref path')
   if (!matched) {
-    return errorResult
+    throw invalidPathErr
   }
 
   const [root, ...links] = matched[1].split('/')
@@ -35,7 +34,7 @@ exports.parseIpfsPath = function parseIpfsPath (ipfsPath) {
       links: links
     }
   } else {
-    return errorResult
+    throw invalidPathErr
   }
 }
 
@@ -49,49 +48,48 @@ exports.parseIpfsPath = function parseIpfsPath (ipfsPath) {
  *  - /ipfs/<base58 string>
  *  - Buffers of any of the above
  *  - multihash Buffer
+ *  - Arrays of any of the above
  *
  * @param  {IPFS}   ipfs       the IPFS node
  * @param  {Described above}   ipfsPaths A single or collection of ipfs-paths
  * @param  {Function} callback Node-style callback. res is Array<Buffer(hash)>
  * @return {void}
  */
-exports.normalizeHashes = function normalizeHashes (ipfs, ipfsPaths, callback) {
+exports.resolveIpfsPaths = function resolveIpfsPaths (ipfs, ipfsPaths, callback) {
   if (!Array.isArray(ipfsPaths)) {
     ipfsPaths = [ipfsPaths]
   }
-  mapSeries(ipfsPaths, (path, cb) => {
-    const validate = (mh) => {
-      let error, result
-      try {
-        multihashes.validate(mh)
-        result = mh
-      } catch (err) {
-        error = err
-      }
-      cb(error, result)
-    }
+
+  map(ipfsPaths, (path, cb) => {
     if (typeof path !== 'string') {
       return validate(path)
     }
-    const {error, root, links} = exports.parseIpfsPath(path)
-    if (error) {
-      return cb(error)
+
+    let parsedPath
+    try {
+      parsedPath = exports.parseIpfsPath(path)
+    } catch(err) {
+      return cb(err)
     }
 
-    const rootHash = multihashes.fromB58String(root)
-    if (!links.length) {
+    const rootHash = multihashes.fromB58String(parsedPath.root)
+    if (!parsedPath.links.length) {
       return validate(rootHash)
     }
 
+    ipfs.object.get(rootHash, pathFn)
+
     // recursively follow named links to the target node
-    const pathFn = (err, obj) => {
-      if (err) { return cb(err) }
-      if (!links.length) {
+    function pathFn (err, obj) {
+      if (err) {
+        return cb(err)
+      }
+      if (!parsedPath.links.length) {
         // done tracing, we have the target node
         return validate(obj.multihash)
       }
 
-      const linkName = links.shift()
+      const linkName = parsedPath.links.shift()
       const nextLink = obj.links.find(link => link.name === linkName)
       if (!nextLink) {
         return cb(new Error(
@@ -101,6 +99,16 @@ exports.normalizeHashes = function normalizeHashes (ipfs, ipfsPaths, callback) {
 
       ipfs.object.get(nextLink.multihash, pathFn)
     }
-    ipfs.object.get(rootHash, pathFn)
+
+    function validate (mh) {
+      let error, result
+      try {
+        multihashes.validate(mh)
+        result = mh
+      } catch (err) {
+        error = err
+      }
+      cb(error, result)
+    }
   }, callback)
 }

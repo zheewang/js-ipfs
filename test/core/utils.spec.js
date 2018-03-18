@@ -59,7 +59,7 @@ describe('utils', () => {
     })
   })
 
-  describe('normalizeHashes', function () {
+  describe('resolveIpfsPaths', function () {
     this.timeout(80 * 1000)
     let node
     let repo
@@ -77,7 +77,7 @@ describe('utils', () => {
     })
 
     it('normalizes hash string to array with multihash object', (done) => {
-      utils.normalizeHashes(node, rootHashString, (err, hashes) => {
+      utils.resolveIpfsPaths(node, rootHashString, (err, hashes) => {
         expect(err).to.not.exist()
         expect(hashes.length).to.equal(1)
         expect(hashes[0]).to.deep.equal(rootHash)
@@ -86,7 +86,7 @@ describe('utils', () => {
     })
 
     it('normalizes array of hash strings to array of multihash objects', (done) => {
-      utils.normalizeHashes(node, [rootHashString, aboutHashString], (err, hashes) => {
+      utils.resolveIpfsPaths(node, [rootHashString, aboutHashString], (err, hashes) => {
         expect(err).to.not.exist()
         expect(hashes.length).to.equal(2)
         expect(hashes[0]).to.deep.equal(rootHash)
@@ -96,7 +96,7 @@ describe('utils', () => {
     })
 
     it('normalizes multihash object to array with multihash object', (done) => {
-      utils.normalizeHashes(node, aboutHash, (err, hashes) => {
+      utils.resolveIpfsPaths(node, aboutHash, (err, hashes) => {
         expect(err).to.not.exist()
         expect(hashes.length).to.equal(1)
         expect(hashes[0]).to.deep.equal(aboutHash)
@@ -105,7 +105,7 @@ describe('utils', () => {
     })
 
     it('normalizes array of multihash objects to array of multihash objects', (done) => {
-      utils.normalizeHashes(node, [rootHash, aboutHash], (err, hashes) => {
+      utils.resolveIpfsPaths(node, [rootHash, aboutHash], (err, hashes) => {
         expect(err).to.not.exist()
         expect(hashes.length).to.equal(2)
         expect(hashes[0]).to.deep.equal(rootHash)
@@ -115,7 +115,7 @@ describe('utils', () => {
     })
 
     it('normalizes ipfs path string to array with multihash object', (done) => {
-      utils.normalizeHashes(node, aboutPathString, (err, hashes) => {
+      utils.resolveIpfsPaths(node, aboutPathString, (err, hashes) => {
         expect(err).to.not.exist()
         expect(hashes.length).to.equal(1)
         expect(hashes[0]).to.deep.equal(aboutHash)
@@ -124,7 +124,7 @@ describe('utils', () => {
     })
 
     it('normalizes array of ipfs path strings to array with multihash objects', (done) => {
-      utils.normalizeHashes(node, [aboutPathString, rootPathString], (err, hashes) => {
+      utils.resolveIpfsPaths(node, [aboutPathString, rootPathString], (err, hashes) => {
         expect(err).to.not.exist()
         expect(hashes.length).to.equal(2)
         expect(hashes[0]).to.deep.equal(aboutHash)
@@ -134,14 +134,14 @@ describe('utils', () => {
     })
 
     it('should error on invalid hashes', function (done) {
-      utils.normalizeHashes(node, '/ipfs/asdlkjahsdfkjahsdfd', err => {
+      utils.resolveIpfsPaths(node, '/ipfs/asdlkjahsdfkjahsdfd', err => {
         expect(err).to.exist()
         done()
       })
     })
 
     it('should error when a link doesn\'t exist', function (done) {
-      utils.normalizeHashes(node, `${rootPathString}/fusion`, err => {
+      utils.resolveIpfsPaths(node, `${rootPathString}/fusion`, err => {
         expect(err).to.exist()
         done()
       })
