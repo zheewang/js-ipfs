@@ -5,7 +5,7 @@ const DAGNode = dagPB.DAGNode
 const DAGLink = dagPB.DAGLink
 const CID = require('cids')
 const pinSet = require('./pin-set')
-const resolveIpfsPaths = require('../utils').resolveIpfsPaths
+const resolvePaths = require('../utils').resolvePaths
 const promisify = require('promisify-es6')
 const multihashes = require('multihashes')
 const Key = require('interface-datastore').Key
@@ -54,7 +54,7 @@ module.exports = function pin (self) {
       callback = once(callback)
       const recursive = options ? options.recursive : true
 
-      resolveIpfsPaths(self, paths, (err, mhs) => {
+      resolvePaths(self, paths, (err, mhs) => {
         if (err) { return callback(err) }
         // verify that each hash can be pinned
         series(mhs.map(multihash => cb => {
@@ -117,7 +117,7 @@ module.exports = function pin (self) {
         recursive = false
       }
       callback = once(callback)
-      resolveIpfsPaths(self, paths, (err, mhs) => {
+      resolvePaths(self, paths, (err, mhs) => {
         if (err) { return callback(err) }
         // verify that each hash can be unpinned
         series(mhs.map(multihash => cb => {
@@ -183,7 +183,7 @@ module.exports = function pin (self) {
       }
       if (paths) {
         // check the pinned state of specific hashes
-        resolveIpfsPaths(self, paths, (err, mhs) => {
+        resolvePaths(self, paths, (err, mhs) => {
           if (err) { return callback(err) }
           series(mhs.map(multihash => cb => {
             pin.isPinnedWithType(multihash, pin.types.all, (err, res) => {

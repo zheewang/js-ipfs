@@ -8,15 +8,15 @@ const isIPFS = require('is-ipfs')
 exports.OFFLINE_ERROR = 'This command must be run in online mode. Try running \'ipfs daemon\' first.'
 
 /**
- * Break an ipfs-path down into it's root hash and an array of links.
+ * Break an ipfs-path down into it's hash hash and an array of links.
  *
  * examples:
- *  b58Hash -> { root: 'b58Hash', links: [] }
- *  b58Hash/mercury/venus -> { root: 'b58Hash', links: ['mercury', 'venus']}
- *  /ipfs/b58Hash/links/by/name -> { root: 'b58Hash', links: ['links', 'by', 'name'] }
+ *  b58Hash -> { hash: 'b58Hash', links: [] }
+ *  b58Hash/mercury/venus -> { hash: 'b58Hash', links: ['mercury', 'venus']}
+ *  /ipfs/b58Hash/links/by/name -> { hash: 'b58Hash', links: ['links', 'by', 'name'] }
  *
  * @param  {String} ipfsPath An ipfs-path
- * @return {Object}            { root: base58 string, links: [string], ?err: Error }
+ * @return {Object}            { hash: base58 string, links: [string], ?err: Error }
  * @throws on an invalid @param ipfsPath
  */
 exports.parseIpfsPath = function parseIpfsPath (ipfsPath) {
@@ -26,11 +26,11 @@ exports.parseIpfsPath = function parseIpfsPath (ipfsPath) {
     throw invalidPathErr
   }
 
-  const [root, ...links] = matched[1].split('/')
+  const [hash, ...links] = matched[1].split('/')
 
-  if (isIPFS.multihash(root)) {
+  if (isIPFS.multihash(hash)) {
     return {
-      root: root,
+      hash: hash,
       links: links
     }
   } else {
@@ -44,9 +44,8 @@ exports.parseIpfsPath = function parseIpfsPath (ipfsPath) {
  *
  * Accepts formats:
  *  - <base58 string>
- *  - <base58 string>/link/to/another/planet
- *  - /ipfs/<base58 string>
- *  - Buffers of the above
+ *  - <base58 string>/link/to/venus
+ *  - /ipfs/<base58 string>/link/to/pluto
  *  - multihash Buffer
  *  - Arrays of the above
  *
@@ -55,7 +54,7 @@ exports.parseIpfsPath = function parseIpfsPath (ipfsPath) {
  * @param  {Function} callback Node-style callback. res is Array<Buffer(hash)>
  * @return {void}
  */
-exports.resolveIpfsPaths = function resolveIpfsPaths (ipfs, ipfsPaths, callback) {
+exports.resolvePaths = function resolvePaths (ipfs, ipfsPaths, callback) {
   if (!Array.isArray(ipfsPaths)) {
     ipfsPaths = [ipfsPaths]
   }
@@ -77,7 +76,7 @@ exports.resolveIpfsPaths = function resolveIpfsPaths (ipfs, ipfsPaths, callback)
       return cb(err)
     }
 
-    const rootHash = multihashes.fromB58String(parsedPath.root)
+    const rootHash = multihashes.fromB58String(parsedPath.hash)
     const rootLinks = parsedPath.links
     if (!rootLinks.length) {
       return cb(null, rootHash)
@@ -99,7 +98,7 @@ exports.resolveIpfsPaths = function resolveIpfsPaths (ipfs, ipfsPaths, callback)
       const nextObj = obj.links.find(link => link.name === linkName)
       if (!nextObj) {
         return cb(new Error(
-          `no link named '${linkName}' under ${obj.multihash}`
+          `no link named "${linkName}" under ${obj.multihash}`
         ))
       }
 
