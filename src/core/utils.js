@@ -1,6 +1,7 @@
 'use strict'
 
 const multihashes = require('multihashes')
+const promisify = require('promisify')
 const map = require('async/map')
 const CID = require('cids')
 const isIPFS = require('is-ipfs')
@@ -19,7 +20,7 @@ exports.OFFLINE_ERROR = 'This command must be run in online mode. Try running \'
  * @return {Object}            { hash: base58 string, links: [string], ?err: Error }
  * @throws on an invalid @param ipfsPath
  */
-exports.parseIpfsPath = function parseIpfsPath (ipfsPath) {
+function parseIpfsPath (ipfsPath) {
   const matched = ipfsPath.match(/^(?:\/ipfs\/)?([^/]+(?:\/[^/]+)*)\/?$/)
   const invalidPathErr = new Error('invalid ipfs ref path')
   if (!matched) {
@@ -52,9 +53,10 @@ exports.parseIpfsPath = function parseIpfsPath (ipfsPath) {
  * @param  {IPFS}   ipfs       the IPFS node
  * @param  {Described above}   ipfsPaths A single or collection of ipfs-paths
  * @param  {Function} callback Node-style callback. res is Array<Buffer(hash)>
- * @return {void}
+ *                              if no callback is passed, returns a Promise
+ * @return {Promise|void}
  */
-exports.resolvePaths = function resolvePaths (ipfs, ipfsPaths, callback) {
+const resolvePaths = promisify(function (ipfs, ipfsPaths, callback) {
   if (!Array.isArray(ipfsPaths)) {
     ipfsPaths = [ipfsPaths]
   }
@@ -64,9 +66,9 @@ exports.resolvePaths = function resolvePaths (ipfs, ipfsPaths, callback) {
       try {
         multihashes.validate(path)
       } catch (err) {
-        cb(err)
+        return cb(err)
       }
-      cb(null, path)
+      return cb(null, path)
     }
 
     let parsedPath
@@ -98,11 +100,14 @@ exports.resolvePaths = function resolvePaths (ipfs, ipfsPaths, callback) {
       const nextObj = obj.links.find(link => link.name === linkName)
       if (!nextObj) {
         return cb(new Error(
-          `no link named "${linkName}" under ${obj.multihash}`
+          `no link named "${linkName}" under ${obj.toJSON().multihash}`
         ))
       }
 
       ipfs.object.get(nextObj.multihash, follow.bind(null, links.slice(1)))
     }
   }, callback)
-}
+})
+
+exports.parseIpfsPath = parseIpfsPath
+exports.resolvePaths = resolvePaths
