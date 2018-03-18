@@ -62,7 +62,12 @@ exports.resolveIpfsPaths = function resolveIpfsPaths (ipfs, ipfsPaths, callback)
 
   map(ipfsPaths, (path, cb) => {
     if (typeof path !== 'string') {
-      return validate(path)
+      try {
+        multihashes.validate(path)
+      } catch (err) {
+        cb(err)
+      }
+      cb(null, path)
     }
 
     let parsedPath
@@ -73,46 +78,32 @@ exports.resolveIpfsPaths = function resolveIpfsPaths (ipfs, ipfsPaths, callback)
     }
 
     const rootHash = multihashes.fromB58String(parsedPath.root)
-    if (!parsedPath.links.length) {
-      return validate(rootHash)
+    const rootLinks = parsedPath.links
+    if (!rootLinks.length) {
+      return cb(null, rootHash)
     }
 
-    ipfs.object.get(rootHash, pathFn)
+    ipfs.object.get(rootHash, follow.bind(null, rootLinks))
 
     // recursively follow named links to the target node
-    function pathFn (err, obj) {
+    function follow (links, err, obj) {
       if (err) {
         return cb(err)
       }
-      if (!parsedPath.links.length) {
-        // done tracing, we have the target node
-        return validate(obj.multihash)
+      if (!links.length) {
+        // done tracing, obj is the target node
+        return cb(null, obj.multihash)
       }
 
-      const linkName = parsedPath.links.shift()
-      const nextLink = obj.links.find(link => link.name === linkName)
-      if (!nextLink) {
-        // construct the relative path we've followed so far
-        const linksFollowed = rootLinks
-          .slice(0, rootLinks.length - links.length)
-          .join('/')
+      const linkName = links[0]
+      const nextObj = obj.links.find(link => link.name === linkName)
+      if (!nextObj) {
         return cb(new Error(
-          `no link named '${linkName}' under ${parsedPath.root}/${linksFollowed}`
+          `no link named '${linkName}' under ${obj.multihash}`
         ))
       }
 
-      ipfs.object.get(nextLink.multihash, pathFn)
-    }
-
-    function validate (mh) {
-      let error, result
-      try {
-        multihashes.validate(mh)
-        result = mh
-      } catch (err) {
-        error = err
-      }
-      cb(error, result)
+      ipfs.object.get(nextObj.multihash, follow.bind(null, links.slice(1)))
     }
   }, callback)
 }
