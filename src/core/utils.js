@@ -2,7 +2,6 @@
 
 const multihashes = require('multihashes')
 const map = require('async/map')
-// const mapSeries = require('async/mapSeries')
 const CID = require('cids')
 const isIPFS = require('is-ipfs')
 
@@ -18,6 +17,7 @@ exports.OFFLINE_ERROR = 'This command must be run in online mode. Try running \'
  *
  * @param  {String} ipfsPath An ipfs-path
  * @return {Object}            { root: base58 string, links: [string], ?err: Error }
+ * @throws on an invalid @param ipfsPath
  */
 exports.parseIpfsPath = function parseIpfsPath (ipfsPath) {
   const matched = ipfsPath.match(/^(?:\/ipfs\/)?([^/]+(?:\/[^/]+)*)\/?$/)
@@ -42,13 +42,13 @@ exports.parseIpfsPath = function parseIpfsPath (ipfsPath) {
  * Resolve various styles of an ipfs-path to the hash of the target node.
  * Follows links in the path.
  *
- * Handles formats:
+ * Accepts formats:
  *  - <base58 string>
  *  - <base58 string>/link/to/another/planet
  *  - /ipfs/<base58 string>
- *  - Buffers of any of the above
+ *  - Buffers of the above
  *  - multihash Buffer
- *  - Arrays of any of the above
+ *  - Arrays of the above
  *
  * @param  {IPFS}   ipfs       the IPFS node
  * @param  {Described above}   ipfsPaths A single or collection of ipfs-paths
@@ -92,8 +92,12 @@ exports.resolveIpfsPaths = function resolveIpfsPaths (ipfs, ipfsPaths, callback)
       const linkName = parsedPath.links.shift()
       const nextLink = obj.links.find(link => link.name === linkName)
       if (!nextLink) {
+        // construct the relative path we've followed so far
+        const linksFollowed = rootLinks
+          .slice(0, rootLinks.length - links.length)
+          .join('/')
         return cb(new Error(
-          `no link named '${linkName}' under ${obj.multihash}`
+          `no link named '${linkName}' under ${parsedPath.root}/${linksFollowed}`
         ))
       }
 

@@ -19,7 +19,7 @@ describe('utils', () => {
   const rootPathString = `/ipfs/${rootHashString}`
   const aboutHashString = 'QmZTR5bcpQD7cFgTorqxZDYaew1Wqgfbd2ud9QqGPAkK2V'
   const aboutHash = multihashes.fromB58String(aboutHashString)
-  const aboutPathString = `/ipfs/${rootHashString}/about`
+  const aboutPathString = `${rootPathString}/about`
 
   describe('parseIpfsPath', () => {
     it('parses path with no links', function () {
@@ -141,8 +141,10 @@ describe('utils', () => {
     })
 
     it('should error when a link doesn\'t exist', function (done) {
-      utils.resolveIpfsPaths(node, `${rootPathString}/fusion`, err => {
-        expect(err).to.exist()
+      utils.resolveIpfsPaths(node, `${aboutPathString}/fusion`, err => {
+        expect(err).to.include(
+          `no link named 'fusion' under QmUhUuiTKkkK8J6JZ9zmj8iNHPuNfGYcszgRumzhHBxEEU/about`
+        )
         done()
       })
     })
