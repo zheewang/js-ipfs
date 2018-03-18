@@ -1,7 +1,7 @@
 'use strict'
 
 const multihashes = require('multihashes')
-const promisify = require('promisify')
+const promisify = require('promisify-es6')
 const map = require('async/map')
 const CID = require('cids')
 const isIPFS = require('is-ipfs')
@@ -50,9 +50,9 @@ function parseIpfsPath (ipfsPath) {
  *  - multihash Buffer
  *  - Arrays of the above
  *
- * @param  {IPFS}   ipfs       the IPFS node
+ * @param  {IPFS}   ipfs                 the IPFS node
  * @param  {Described above}   ipfsPaths A single or collection of ipfs-paths
- * @param  {Function} callback Node-style callback. res is Array<Buffer(hash)>
+ * @param  {Function<err, res>} callback res is Array<Buffer(hash)>
  *                              if no callback is passed, returns a Promise
  * @return {Promise|void}
  */
