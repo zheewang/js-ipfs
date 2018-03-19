@@ -196,7 +196,7 @@ module.exports = {
         : Infinity,
       cidVersion: argv.cidVersion,
       rawLeaves: argv.rawLeaves,
-      onlyHash: argv.onlyHash
+      onlyHash: argv.onlyHash,
       pin: argv.pin
     }
 
