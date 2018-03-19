@@ -92,10 +92,7 @@ describe('pin', () => runOnAndOff.off((thing) => {
 
     it('lists all pins when no hash is passed', () => {
       return ipfs('pin ls').then(out => {
-        expect(out).to.include(`${keys.root} recursive\n`)
-        expect(out).to.include(`${keys.solarSystem} direct\n`)
-        expect(out).to.include(`${keys.mercuryDir} indirect\n`)
-        expect(out).to.include(`${keys.mercuryWiki} indirect\n`)
+        expect(out).to.include.members(Object.values(keys))
       })
     })
   })
