@@ -76,7 +76,7 @@ describe('pin', () => runOnAndOff.off((thing) => {
       })
     })
 
-    it.skip('lists indirect pins', function () {
+    it('lists indirect pins', function () {
       this.timeout(25 * 1000)
 
       return ipfs(`pin ls ${keys.mercuryWiki}`).then(out => {
@@ -92,7 +92,8 @@ describe('pin', () => runOnAndOff.off((thing) => {
 
     it('lists all pins when no hash is passed', () => {
       return ipfs('pin ls').then(out => {
-        expect(out).to.include.members(Object.values(keys))
+        const hashes = out.split('\n').map(line => line.split(' ')[0])
+        expect(hashes).to.include.members(Object.values(keys))
       })
     })
   })
