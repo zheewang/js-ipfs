@@ -93,7 +93,7 @@ module.exports = function pin (self) {
           if (recursive) {
             results.forEach(key => {
               // recursive pin should replace direct pin
-              directPins.delete(key)
+              directPins.delete(key) // TODO questionable
               recursivePins.add(key)
             })
           } else {
@@ -128,6 +128,7 @@ module.exports = function pin (self) {
             if (!pinned) {
               return cb(new Error(`${key} is not pinned`))
             }
+
             switch (reason) {
               case (pin.types.recursive):
                 if (recursive) {
@@ -145,6 +146,7 @@ module.exports = function pin (self) {
           })
         }), (err, results) => {
           if (err) { return callback(err) }
+
           // update the pin sets in memory
           results.forEach(key => {
             if (recursive) {
@@ -157,6 +159,7 @@ module.exports = function pin (self) {
               directPins.delete(key)
             }
           })
+
           // persist updated pin sets to datastore
           pin.flush((err, root) => {
             if (err) { return callback(err) }
