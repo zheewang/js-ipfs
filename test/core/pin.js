@@ -71,42 +71,52 @@ describe('pin', function () {
     ipfs = new IPFS({ repo })
     ipfs.on('ready', () => {
       pin = ipfs.pin
-      done()
+      ipfs.files.add(files, done)
     })
   })
 
   after(done => repo.teardown(done))
 
   /**
-    set,
-    add,
     getIndirectKeys,
     flush,
     load
    */
 
   describe('isPinned', function () {
-    // assume correct behavior for now
-    // it('true when node is pinned')
+    beforeEach(function () {
+      pin.clear()
+    })
+
+    it('true when node is pinned', function () {
+      return pin.add(keys.solarSystem)
+        .then(() => pin.isPinned(keys.solarSystem))
+        .then(pinned => expect(pinned.pinned).to.eql(true))
+    })
 
     it('when node is not in datastore', function () {
-      this.slow(8 * 1000)
-      const hash = 'QmfGBRT6BbWJd7yUc2uYdaUZJBbnEFvTqehPFoSMQ6ssss'
-      return expectTimeout(pin.isPinned(hash), 4000)
+      const falseHash = `${keys.root.slice(0, -2)}ss`
+      return pin.isPinned(falseHash)
+        .then(pinned => {
+          expect(pinned.pinned).to.eql(false)
+          expect(pinned.reason).to.eql(undefined)
+        })
     })
 
     it('when node is in datastore but not pinned', function () {
       const hash = 'QmfGBRT6BbWJd7yUc2uYdaUZJBbnEFvTqehPFoSMQ6wgdr'
-      return pin.rm(hash)
-        .then(() => expectPinned(hash, false))
-        .then(() => pin.add(hash)) // want to remove
+      return expectPinned(keys.root, false)
     })
   })
 
   describe('isPinnedWithType', function () {
+    before(function () {
+      pin.clear()
+      return pin.add(keys.root)
+    })
+
     it('when pinned recursively', function () {
-      const hash = 'QmfGBRT6BbWJd7yUc2uYdaUZJBbnEFvTqehPFoSMQ6wgdr'
-      return pin.isPinnedWithType(hash, pin.types.recursive)
+      return pin.isPinnedWithType(keys.root, pin.types.recursive)
         .then(result => {
           expect(result.pinned).to.eql(true)
           expect(result.reason).to.eql(pin.types.recursive)
@@ -294,6 +304,15 @@ describe('pin', function () {
       return pin.rm(keys.solarSystem)
         .catch(err => expect(err).to.match(/is pinned indirectly under/))
         .then(() => expectPinned(keys.solarSystem))
+    })
+
+    // TODO possibly exposes a bug.
+    // If you pin.rm recursive=true, on an indirect pin that is also pinned
+    // directly, shouldn't it fail? Seems just to be not properly handling
+    // default options. anyway, go does this too.
+    it('p', function () {
+      return pin.add(keys.mercuryDir, { recursive: false })
+        .then(() => pin.rm(keys.mercuryDir, { recursive: true }))
     })
 
     it('fails when an item is not pinned', function () {
