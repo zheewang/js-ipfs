@@ -48,8 +48,13 @@ describe('pin', function () {
   let pin
   let repo
 
-  function expectPinned (hash, pinned = true) {
-    return pin.isPinned(hash)
+  function expectPinned (hash, type, pinned = true) {
+    if (typeof type === 'boolean') {
+      pinned = type
+      type = undefined
+    }
+
+    return pin.isPinnedWithType(hash, type || pin.types.all)
       .then(result => expect(result.pinned).to.eql(pinned))
   }
 
@@ -146,36 +151,63 @@ describe('pin', function () {
       }))
 
       return ipfs.files.add(files)
-        .then((out) => {
-          return Promise.all([
-            pin.add(keys.root),
-            pin.add(keys.mercuryDir, { recursive: false })
-          ])
-        })
+        // .then((out) => {
+        //   return Promise.all([
+        //     pin.add(keys.root),
+        //     pin.add(keys.mercuryDir, { recursive: false })
+        //   ])
+        // })
+    })
+
+    beforeEach(function () {
+      pin.clear()
+      // return pin.add(keys.root)
     })
 
     it('recursive', function () {
+      return pin.add(keys.root)
+        .then(() => {
+          const pinChecks = Object.values(keys)
+            .map(hash => expectPinned(hash))
 
+          return Promise.all(pinChecks)
+        })
     })
 
     it('direct', function () {
-
+      return pin.add(keys.root, { recursive: false })
+        .then(() => Promise.all([
+          expectPinned(keys.root),
+          expectPinned(keys.solarSystem, false)
+        ]))
     })
 
     it('recursive pin parent of direct pin', function () {
-
+      return pin.add(keys.solarSystem, { recursive: false })
+        .then(() => pin.add(keys.root))
+        .then(() => Promise.all([
+          // solarSystem is pinned both directly and indirectly o.O
+          expectPinned(keys.solarSystem, pin.types.direct),
+          expectPinned(keys.solarSystem, pin.types.indirect),
+        ]))
     })
 
     it('directly pinning a recursive pin fails', function () {
-
+      return pin.add(keys.root)
+        .then(() => pin.add(keys.root, { recursive: false }))
+        .catch(err => expect(err).to.match(/already pinned recursively/))
     })
 
     it('can\'t pin item not in datastore', function () {
-
+      this.timeout(10 * 1000)
+      const falseHash = `${keys.root.slice(0, -2)}ss`
+      return expectTimeout(pin.add(falseHash), 4000)
     })
 
     it('needs all children in datastore to pin recursively', function () {
-      // but direct succeeds
+      this.timeout(10 * 1000)
+      return ipfs.block.rm(keys.mercuryWiki)
+        .then(() => expectTimeout(pin.add(keys.root), 4000))
     })
   })
 
