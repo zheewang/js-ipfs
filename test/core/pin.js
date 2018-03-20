@@ -7,7 +7,6 @@ const expect = chai.expect
 chai.use(dirtyChai)
 
 const fs = require('fs')
-const multihash = require('multihashes')
 
 const IPFS = require('../../src/core')
 const createTempRepo = require('../utils/create-repo-nodejs')
@@ -81,27 +80,21 @@ describe('pin', function () {
     it('when node is not in datastore', function () {
       this.slow(8 * 1000)
       const hash = 'QmfGBRT6BbWJd7yUc2uYdaUZJBbnEFvTqehPFoSMQ6ssss'
-      const mh = multihash.fromB58String(hash)
-      return expectTimeout(pin.isPinned(mh), 4000)
+      return expectTimeout(pin.isPinned(hash), 4000)
     })
 
     it('when node is in datastore but not pinned', function () {
       const hash = 'QmfGBRT6BbWJd7yUc2uYdaUZJBbnEFvTqehPFoSMQ6wgdr'
-      const mh = multihash.fromB58String(hash)
-      return pin.rm(mh)
-        .then(() => pin.isPinned(mh))
-        .then(result => {
-          expect(result.pinned).to.eql(false)
-        })
-        .then(() => pin.add(mh)) // want to remove
+      return pin.rm(hash)
+        .then(() => expectPinned(hash, false))
+        .then(() => pin.add(hash)) // want to remove
     })
   })
 
   describe('isPinnedWithType', function () {
     it('when pinned recursively', function () {
       const hash = 'QmfGBRT6BbWJd7yUc2uYdaUZJBbnEFvTqehPFoSMQ6wgdr'
-      const mh = multihash.fromB58String(hash)
-      return pin.isPinnedWithType(mh, pin.types.recursive)
+      return pin.isPinnedWithType(hash, pin.types.recursive)
         .then(result => {
           expect(result.pinned).to.eql(true)
           expect(result.reason).to.eql(pin.types.recursive)
@@ -111,8 +104,7 @@ describe('pin', function () {
     it('when pinned indirectly', function () {
       const rootHash = 'QmfGBRT6BbWJd7yUc2uYdaUZJBbnEFvTqehPFoSMQ6wgdr'
       const hash = 'QmPZ9gcCEpqKTo6aq61g2nXGUhM4iCL3ewB6LDXZCtioEB'
-      const mh = multihash.fromB58String(hash)
-      return pin.isPinnedWithType(mh, pin.types.indirect)
+      return pin.isPinnedWithType(hash, pin.types.indirect)
         .then(result => {
           expect(result.pinned).to.eql(true)
           expect(result.reason).to.eql(rootHash)
@@ -121,22 +113,20 @@ describe('pin', function () {
 
     it('when pinned directly', function () {
       const hash = 'QmPZ9gcCEpqKTo6aq61g2nXGUhM4iCL3ewB6LDXZCtioEB'
-      const mh = multihash.fromB58String(hash)
-      return pin.add(mh, { recursive: false })
+      return pin.add(hash, { recursive: false })
         .then(() => {
-          return pin.isPinnedWithType(mh, pin.types.direct)
+          return pin.isPinnedWithType(hash, pin.types.direct)
             .then(result => {
               expect(result.pinned).to.eql(true)
               expect(result.reason).to.eql(pin.types.direct)
             })
         })
-        .then(() => pin.rm(mh, { recursive: false })) // want to remove
+        .then(() => pin.rm(hash, { recursive: false })) // want to remove
     })
 
     it('when not pinned', function () {
       const hash = 'QmfGBRT6BbWJd7yUc2uYdaUZJBbnEFvTqehPFoSMQ6wgdr'
-      const mh = multihash.fromB58String(hash)
-      return pin.isPinnedWithType(mh, pin.types.direct)
+      return pin.isPinnedWithType(hash, pin.types.direct)
         .then(pin => {
           expect(pin.pinned).to.eql(false)
         })
