@@ -269,7 +269,7 @@ describe('pin', function () {
         })
     })
 
-    it.only('a direct pin', function () {
+    it('a direct pin', function () {
       pin.clear()
       return pin.ls().then((out) => {
         return pin.add(keys.mercuryDir, { recursive: false })

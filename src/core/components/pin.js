@@ -146,8 +146,17 @@ module.exports = function pin (self) {
         }), (err, results) => {
           if (err) { return callback(err) }
           // update the pin sets in memory
-          const pins = recursive ? recursivePins : directPins
-          results.forEach(key => pins.delete(key))
+          results.forEach(key => {
+            if (recursive) {
+              if (recursivePins.has(key)) {
+                recursivePins.delete(key)
+              } else {
+                directPins.delete(key)
+              }
+            } else {
+              directPins.delete(key)
+            }
+          })
           // persist updated pin sets to datastore
           pin.flush((err, root) => {
             if (err) { return callback(err) }
