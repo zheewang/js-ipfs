@@ -194,7 +194,7 @@ describe('pin', function () {
       return expectTimeout(pin.add(falseHash), 4000)
     })
 
-    // block rm breaks subsequent tests
+    // TODO block rm breaks subsequent tests
     it.skip('needs all children in datastore to pin recursively', function () {
       this.timeout(10 * 1000)
       return ipfs.block.rm(keys.mercuryWiki)
@@ -217,7 +217,7 @@ describe('pin', function () {
     })
 
     // TODO exposes a bug
-    it.skip('indirect pins supersedes direct pins', function () {
+    it('indirect pins supersedes direct pins', function () {
       return pin.add(keys.mercuryDir, { recursive: false })
         .then(() => pin.ls())
         .then(ls => {
@@ -231,14 +231,14 @@ describe('pin', function () {
         return pin.ls()
           .then(out =>
             expect(out).to.deep.eql([
-              { type: 'direct',
-                hash: 'QmbJCNKXJqVK8CzbjpNFz2YekHwh3CSHpBA86uqYg3sJ8q' },
               { type: 'recursive',
                 hash: 'QmTAMavb995EHErSrKo7mB8dYkpaSJxu6ys1a6XJyB2sys' },
               { type: 'indirect',
                 hash: 'QmTMbkDfvHwq3Aup6Nxqn3KKw9YnoKzcZvuArAfQ9GF3QG' },
               { type: 'indirect',
-                hash: 'QmVgSHAdMxFAuMP2JiMAYkB8pCWP1tcB9djqvq8GKAFiHi' },
+                hash: 'QmbJCNKXJqVK8CzbjpNFz2YekHwh3CSHpBA86uqYg3sJ8q' },
+              { type: 'indirect',
+                hash: 'QmVgSHAdMxFAuMP2JiMAYkB8pCWP1tcB9djqvq8GKAFiHi' }
             ])
           )
       })
@@ -269,6 +269,8 @@ describe('pin', function () {
             expect(out).to.deep.eql([
               { type: 'indirect',
                 hash: 'QmTMbkDfvHwq3Aup6Nxqn3KKw9YnoKzcZvuArAfQ9GF3QG' },
+              { type: 'indirect',
+                hash: 'QmbJCNKXJqVK8CzbjpNFz2YekHwh3CSHpBA86uqYg3sJ8q' },
               { type: 'indirect',
                 hash: 'QmVgSHAdMxFAuMP2JiMAYkB8pCWP1tcB9djqvq8GKAFiHi' }
             ])

@@ -225,9 +225,9 @@ module.exports = function pin (self) {
         })
       } else {
         // show all pinned items of type
-        const result = []
+        let result = []
         if (type === pin.types.direct || type === pin.types.all) {
-          pin.directKeyStrings().forEach((hash) => {
+          pin.directKeyStrings().forEach(hash => {
             result.push({
               type: pin.types.direct,
               hash: hash
@@ -235,7 +235,7 @@ module.exports = function pin (self) {
           })
         }
         if (type === pin.types.recursive || type === pin.types.all) {
-          pin.recursiveKeyStrings().forEach((hash) => {
+          pin.recursiveKeyStrings().forEach(hash => {
             result.push({
               type: pin.types.recursive,
               hash: hash
@@ -245,7 +245,12 @@ module.exports = function pin (self) {
         if (type === pin.types.indirect || type === pin.types.all) {
           pin.getIndirectKeys((err, hashes) => {
             if (err) { return callback(err) }
-            hashes.forEach((hash) => {
+            hashes.forEach(hash => {
+              if (directPins.has(hash)) {
+                // if an indirect pin is also pinned directly,
+                // use only the indirect entry
+                result = result.filter(pin => pin.hash !== hash)
+              }
               result.push({
                 type: pin.types.indirect,
                 hash: hash
@@ -333,14 +338,18 @@ module.exports = function pin (self) {
       const rKeys = pin.recursiveKeys()
       each(rKeys, (multihash, cb) => {
         dag._getRecursive(multihash, (err, nodes) => {
-          if (err) { return cb(err) }
-          nodes.forEach((node) => {
+          if (err) {
+            return cb(err)
+          }
+
+          nodes.forEach(node => {
             const key = toB58String(node.multihash)
-            if (!directPins.has(key) && !recursivePins.has(key)) {
+            if (!recursivePins.has(key)) {
               // not already pinned recursively or directly
               indirectKeys.add(key)
             }
           })
+
           cb()
         })
       }, (err) => {
