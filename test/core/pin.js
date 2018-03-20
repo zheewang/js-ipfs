@@ -306,15 +306,6 @@ describe('pin', function () {
         .then(() => expectPinned(keys.solarSystem))
     })
 
-    // TODO possibly exposes a bug.
-    // If you pin.rm recursive=true, on an indirect pin that is also pinned
-    // directly, shouldn't it fail? Seems just to be not properly handling
-    // default options. anyway, go does this too.
-    it('p', function () {
-      return pin.add(keys.mercuryDir, { recursive: false })
-        .then(() => pin.rm(keys.mercuryDir, { recursive: true }))
-    })
-
     it('fails when an item is not pinned', function () {
       return pin.rm(keys.root)
         .then(() => pin.rm(keys.root))
