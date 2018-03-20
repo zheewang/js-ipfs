@@ -9,20 +9,20 @@ const runOnAndOff = require('../utils/on-and-off')
 //   solar-system.md
 //   mercury/
 //    wiki.md
-
 const fixturePath = 'test/fixtures/planets'
 const hashes = {
   root: 'QmTAMavb995EHErSrKo7mB8dYkpaSJxu6ys1a6XJyB2sys',
+  solarWiki: 'QmTMbkDfvHwq3Aup6Nxqn3KKw9YnoKzcZvuArAfQ9GF3QG',
   mercuryDir: 'QmbJCNKXJqVK8CzbjpNFz2YekHwh3CSHpBA86uqYg3sJ8q',
-  mercuryWiki: 'QmVgSHAdMxFAuMP2JiMAYkB8pCWP1tcB9djqvq8GKAFiHi',
-  solarSystem: 'QmTMbkDfvHwq3Aup6Nxqn3KKw9YnoKzcZvuArAfQ9GF3QG'
+  mercuryWiki: 'QmVgSHAdMxFAuMP2JiMAYkB8pCWP1tcB9djqvq8GKAFiHi'
 }
 
 describe('pin', () => runOnAndOff(thing => {
-    const ipfs = thing.ipfs
+    let ipfs
 
     before(function () {
       this.timeout(15 * 1000)
+      ipfs = thing.ipfs
       return ipfs(`files add -r ${fixturePath}`)
     })
 
@@ -43,9 +43,9 @@ describe('pin', () => runOnAndOff(thing => {
       })
 
       it('direct', () => {
-        return ipfs(`pin add ${hashes.solarSystem} --recursive false`)
+        return ipfs(`pin add ${hashes.solarWiki} --recursive false`)
           .then(out =>
-            expect(out).to.eql(`pinned ${hashes.solarSystem} directly\n`)
+            expect(out).to.eql(`pinned ${hashes.solarWiki} directly\n`)
           )
       })
     })
@@ -59,10 +59,10 @@ describe('pin', () => runOnAndOff(thing => {
       })
 
       it('handles multiple hashes', function () {
-        return ipfs(`pin ls ${hashes.root} ${hashes.solarSystem}`)
+        return ipfs(`pin ls ${hashes.root} ${hashes.solarWiki}`)
           .then(out => {
             expect(out).to.eql(
-              `${hashes.root} recursive\n${hashes.solarSystem} direct\n`
+              `${hashes.root} recursive\n${hashes.solarWiki} direct\n`
             )
           })
       })

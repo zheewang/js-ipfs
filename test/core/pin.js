@@ -20,15 +20,12 @@ const expectTimeout = require('../utils/expect-timeout')
 const fixturePath = 'test/fixtures/planets'
 const hashes = {
   root: 'QmTAMavb995EHErSrKo7mB8dYkpaSJxu6ys1a6XJyB2sys',
+  solarWiki: 'QmTMbkDfvHwq3Aup6Nxqn3KKw9YnoKzcZvuArAfQ9GF3QG',
   mercuryDir: 'QmbJCNKXJqVK8CzbjpNFz2YekHwh3CSHpBA86uqYg3sJ8q',
-  mercuryWiki: 'QmVgSHAdMxFAuMP2JiMAYkB8pCWP1tcB9djqvq8GKAFiHi',
-  solarSystem: 'QmTMbkDfvHwq3Aup6Nxqn3KKw9YnoKzcZvuArAfQ9GF3QG'
+  mercuryWiki: 'QmVgSHAdMxFAuMP2JiMAYkB8pCWP1tcB9djqvq8GKAFiHi'
 }
 
 describe('pin', function () {
-  let ipfs
-  let pin
-  let repo
   const fixtures = [
     'test/fixtures/planets/mercury/wiki.md',
     'test/fixtures/planets/solar-system.md'
@@ -36,6 +33,10 @@ describe('pin', function () {
     path,
     content: fs.readFileSync(path)
   }))
+
+  let ipfs
+  let pin
+  let repo
 
   function expectPinned (hash, type, pinned = true) {
     if (typeof type === 'boolean') {
@@ -69,8 +70,8 @@ describe('pin', function () {
     })
 
     it('when node is pinned', function () {
-      return pin.add(hashes.solarSystem)
-        .then(() => pin.isPinned(hashes.solarSystem))
+      return pin.add(hashes.solarWiki)
+        .then(() => pin.isPinned(hashes.solarWiki))
         .then(pinned => expect(pinned.pinned).to.eql(true))
     })
 
@@ -147,17 +148,17 @@ describe('pin', function () {
       return pin.add(hashes.root, { recursive: false })
         .then(() => Promise.all([
           expectPinned(hashes.root),
-          expectPinned(hashes.solarSystem, false)
+          expectPinned(hashes.solarWiki, false)
         ]))
     })
 
     it('recursive pin parent of direct pin', function () {
-      return pin.add(hashes.solarSystem, { recursive: false })
+      return pin.add(hashes.solarWiki, { recursive: false })
         .then(() => pin.add(hashes.root))
         .then(() => Promise.all([
-          // solarSystem is pinned both directly and indirectly o.O
-          expectPinned(hashes.solarSystem, pin.types.direct),
-          expectPinned(hashes.solarSystem, pin.types.indirect),
+          // solarWiki is pinned both directly and indirectly o.O
+          expectPinned(hashes.solarWiki, pin.types.direct),
+          expectPinned(hashes.solarWiki, pin.types.indirect),
         ]))
     })
 
@@ -280,9 +281,9 @@ describe('pin', function () {
     })
 
     it('fails to remove an indirect pin', function () {
-      return pin.rm(hashes.solarSystem)
+      return pin.rm(hashes.solarWiki)
         .catch(err => expect(err).to.match(/is pinned indirectly under/))
-        .then(() => expectPinned(hashes.solarSystem))
+        .then(() => expectPinned(hashes.solarWiki))
     })
 
     it('fails when an item is not pinned', function () {
