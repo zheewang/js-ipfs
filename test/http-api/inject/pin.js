@@ -7,20 +7,22 @@ const FormData = require('form-data')
 const streamToPromise = require('stream-to-promise')
 const each = require('async/each')
 
-// use a tree of ipfs objects for recursive tests:
-//  root
-//   |`leaf
-//    `branch
-//      `subLeaf
+// We use existing pin structure in the go-ipfs-repo fixture
+// so that we don't have to stream a bunch of object/put operations
+// This is suitable because these tests target the functionality
+// of the /pin endpoints and don't delve into the pin core
+//
+// fixture's pins:
+// - root1
+//   - c1
+//   - c2
+//   - c3
+//   - c4
+//   - c5
+//   - c6
+// - root2
 
-// const hashes = {
-//   root: 'QmWQwS2Xh1SFGMPzUVYQ52b7RC7fTfiaPHm3ZyTRZuHmer',
-//   leaf: 'QmaZoTQ6wFe7EtvaePBUeXavfeRqCAq3RUMomFxBpZLrLA',
-//   branch: 'QmNxjjP7dtx6pzxWGBRCrgmjX3JqKL7uF2Kjx7ExiZDbSB',
-//   subLeaf: 'QmUzzznkyQL7FjjBztG3D1tTjBuxeArLceDZnuSowUggXL'
-// }
-
-const hashes = {
+const pins = {
   root1: 'QmVtU7ths96fMgZ8YSZAbKghyieq7AjxNdcqyVzxTt3qVe',
     c1: 'QmZTR5bcpQD7cFgTorqxZDYaew1Wqgfbd2ud9QqGPAkK2V',
     c2: 'QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y',
@@ -31,46 +33,12 @@ const hashes = {
   root2: 'QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn',
 }
 
-// const hashes = {
-//   planets: 'QmTAMavb995EHErSrKo7mB8dYkpaSJxu6ys1a6XJyB2sys',
-//   'test-data/mercury.json': 'QmTMbkDfvHwq3Aup6Nxqn3KKw9YnoKzcZvuArAfQ9GF3QG',
-//   'planets/mercury': 'QmbJCNKXJqVK8CzbjpNFz2YekHwh3CSHpBA86uqYg3sJ8q',
-//   'planets/mercury/wiki.md': 'QmVgSHAdMxFAuMP2JiMAYkB8pCWP1tcB9djqvq8GKAFiHi'
-// }
-
 module.exports = (http) => {
   describe('pin', () => {
     let api
 
-    before(done => {
-      // add test tree to repo
+    before(() => {
       api = http.api.server.select('API')
-      // const putFile = (filename, cb) => {
-      //   const form = new FormData()
-      //   const filePath = `test/fixtures/${filename}`
-      //   form.append('file', fs.createReadStream(filePath))
-      //   const headers = form.getHeaders()
-      //
-      //   streamToPromise(form).then(payload => {
-      //     // console.log('buffer:', Buffer.isBuffer(payload), payload)
-      //     api.inject({
-      //       method: 'POST',
-      //       url: '/api/v0/object/put',
-      //       headers: headers,
-      //       payload: payload
-      //     }, (res) => {
-      //       console.log('result:', res.result)
-      //       expect(res.statusCode).to.equal(200)
-      //       cb()
-      //     })
-      //   })
-      // }
-      //
-      // each(Object.keys(hashes), putFile, (err) => {
-      //   expect(err).to.not.exist()
-      //   done()
-      // })
-      done()
     })
 
 
@@ -89,10 +57,10 @@ module.exports = (http) => {
       it('unpins recursive pins', done => {
         api.inject({
           method: 'POST',
-          url: `/api/v0/pin/rm?arg=${hashes.root1}`
+          url: `/api/v0/pin/rm?arg=${pins.root1}`
         }, (res) => {
           expect(res.statusCode).to.equal(200)
-          expect(res.result.Pins).to.deep.eql([hashes.root1])
+          expect(res.result.Pins).to.deep.eql([pins.root1])
           done()
         })
       })
@@ -100,22 +68,22 @@ module.exports = (http) => {
       it('unpins direct pins', done => {
         api.inject({
           method: 'POST',
-          url: `/api/v0/pin/add?arg=${hashes.root1}&recursive=false`
+          url: `/api/v0/pin/add?arg=${pins.root1}&recursive=false`
         }, res => {
           expect(res.statusCode).to.equal(200)
           api.inject({
             method: 'POST',
-            url: `/api/v0/pin/rm?arg=${hashes.root1}&recursive=false`
+            url: `/api/v0/pin/rm?arg=${pins.root1}&recursive=false`
           }, (res) => {
             expect(res.statusCode).to.equal(200)
-            expect(res.result.Pins).to.deep.eql([hashes.root1])
+            expect(res.result.Pins).to.deep.eql([pins.root1])
             done()
           })
         })
       })
     })
 
-    describe.only('add', () => {
+    describe('add', () => {
       it('fails on invalid args', done => {
         api.inject({
           method: 'POST',
@@ -130,10 +98,10 @@ module.exports = (http) => {
       it('recursively', done => {
         api.inject({
           method: 'POST',
-          url: `/api/v0/pin/add?arg=${hashes.root1}`
+          url: `/api/v0/pin/add?arg=${pins.root1}`
         }, (res) => {
           expect(res.statusCode).to.equal(200)
-          expect(res.result.Pins).to.deep.eql([hashes.root1])
+          expect(res.result.Pins).to.deep.eql([pins.root1])
           done()
         })
       })
@@ -141,7 +109,7 @@ module.exports = (http) => {
       it('directly', done => {
         api.inject({
           method: 'POST',
-          url: `/api/v0/pin/add?arg=${hashes.root1}&recursive=false`
+          url: `/api/v0/pin/add?arg=${pins.root1}&recursive=false`
         }, (res) => {
           // by directly pinning a node that is already recursively pinned,
           // it should error and verifies that the endpoint is parsing
@@ -171,7 +139,7 @@ module.exports = (http) => {
           url: '/api/v0/pin/ls'
         }, (res) => {
           expect(res.statusCode).to.equal(200)
-          expect(res.result.Keys).to.have.all.keys(Object.values(hashes))
+          expect(res.result.Keys).to.have.all.keys(Object.values(pins))
           done()
         })
       })
@@ -179,11 +147,11 @@ module.exports = (http) => {
       it('finds specific pinned objects', done => {
         api.inject({
           method: 'GET',
-          url: `/api/v0/pin/ls?arg=${hashes.c1}`
+          url: `/api/v0/pin/ls?arg=${pins.c1}`
         }, (res) => {
           expect(res.statusCode).to.equal(200)
-          expect(res.result.Keys[hashes.c1].Type)
-            .to.equal(`indirect through ${hashes.root1}`)
+          expect(res.result.Keys[pins.c1].Type)
+            .to.equal(`indirect through ${pins.root1}`)
           done()
         })
       })
