@@ -57,7 +57,7 @@ describe('utils', () => {
     })
   })
 
-  describe('resolvePaths', function () {
+  describe.only('resolvePaths', function () {
     this.timeout(80 * 1000)
     let node
     let repo
@@ -112,7 +112,8 @@ describe('utils', () => {
       })
     })
 
-    it('normalizes ipfs path string to array with multihash object', (done) => {
+    it('normalizes ipfs path string to array with multihash object', function (done) {
+      this.timeout(200 * 1000)
       utils.resolvePaths(node, aboutPathString, (err, hashes) => {
         expect(err).to.not.exist()
         expect(hashes.length).to.equal(1)
