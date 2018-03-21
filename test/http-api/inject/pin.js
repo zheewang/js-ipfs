@@ -73,8 +73,61 @@ module.exports = (http) => {
       done()
     })
 
-    describe('/pin/add', () => {
-      it('pins object recursively by default', done => {
+
+    describe('rm', () => {
+      it('fails on invalid args', done => {
+        api.inject({
+          method: 'POST',
+          url: `/api/v0/pin/rm?arg=invalid`
+        }, res => {
+          expect(res.statusCode).to.equal(500)
+          expect(res.result.Message).to.match(/invalid ipfs ref path/)
+          done()
+        })
+      })
+
+      it('unpins recursive pins', done => {
+        api.inject({
+          method: 'POST',
+          url: `/api/v0/pin/rm?arg=${hashes.root1}`
+        }, (res) => {
+          expect(res.statusCode).to.equal(200)
+          expect(res.result.Pins).to.deep.eql([hashes.root1])
+          done()
+        })
+      })
+
+      it('unpins direct pins', done => {
+        api.inject({
+          method: 'POST',
+          url: `/api/v0/pin/add?arg=${hashes.root1}&recursive=false`
+        }, res => {
+          expect(res.statusCode).to.equal(200)
+          api.inject({
+            method: 'POST',
+            url: `/api/v0/pin/rm?arg=${hashes.root1}&recursive=false`
+          }, (res) => {
+            expect(res.statusCode).to.equal(200)
+            expect(res.result.Pins).to.deep.eql([hashes.root1])
+            done()
+          })
+        })
+      })
+    })
+
+    describe.only('add', () => {
+      it('fails on invalid args', done => {
+        api.inject({
+          method: 'POST',
+          url: `/api/v0/pin/add?arg=invalid`
+        }, res => {
+          expect(res.statusCode).to.equal(500)
+          expect(res.result.Message).to.match(/invalid ipfs ref path/)
+          done()
+        })
+      })
+
+      it('recursively', done => {
         api.inject({
           method: 'POST',
           url: `/api/v0/pin/add?arg=${hashes.planets}`
@@ -84,10 +137,8 @@ module.exports = (http) => {
           done()
         })
       })
-    })
 
-    describe('/pin/add (direct)', () => {
-      it('pins object directly if specified', done => {
+      it('directly', done => {
         api.inject({
           method: 'POST',
           url: `/api/v0/pin/add?arg=${hashes.leaf}&recursive=false`
@@ -100,7 +151,7 @@ module.exports = (http) => {
     })
 
     describe('ls', () => {
-      it('errors on invalid args', done => {
+      it('fails on invalid args', done => {
         api.inject({
           method: 'GET',
           url: `/api/v0/pin/ls?arg=invalid`
@@ -116,9 +167,8 @@ module.exports = (http) => {
           method: 'GET',
           url: '/api/v0/pin/ls'
         }, (res) => {
-          const keys = res.result.Keys
           expect(res.statusCode).to.equal(200)
-          expect(keys).to.have.all.keys(Object.values(hashes))
+          expect(res.result.Keys).to.have.all.keys(Object.values(hashes))
           done()
         })
       })
@@ -128,9 +178,8 @@ module.exports = (http) => {
           method: 'GET',
           url: `/api/v0/pin/ls?arg=${hashes.c1}`
         }, (res) => {
-          const keys = res.result.Keys
           expect(res.statusCode).to.equal(200)
-          expect(keys[hashes.c1].Type)
+          expect(res.result.Keys[hashes.c1].Type)
             .to.equal(`indirect through ${hashes.root1}`)
           done()
         })
@@ -141,9 +190,8 @@ module.exports = (http) => {
           method: 'GET',
           url: `/api/v0/pin/ls?type=recursive`
         }, (res) => {
-          const keys = res.result.Keys
           expect(res.statusCode).to.equal(200)
-          expect(keys).to.deep.eql({
+          expect(res.result.Keys).to.deep.eql({
             QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn: {
               Type: 'recursive'
             },
@@ -151,43 +199,6 @@ module.exports = (http) => {
               Type: 'recursive'
             }
           })
-          done()
-        })
-      })
-    })
-
-
-    describe('rm (direct)', () => {
-      it('unpins only directly pinned objects if specified', done => {
-        api.inject({
-          method: 'POST',
-          url: `/api/v0/pin/rm?arg=${hashes.leaf}&recursive=false`
-        }, (res) => {
-          expect(res.statusCode).to.equal(200)
-          expect(res.result).to.deep.equal({Pins: [hashes.leaf]})
-
-          api.inject({
-            method: 'POST',
-            url: `/api/v0/pin/rm?arg=${hashes.planets}&recursive=false`
-          }, (res) => {
-            expect(res.statusCode).to.equal(500)
-            expect(res.result.Message).to.equal(
-              'Failed to remove pin: ' +
-              'QmWQwS2Xh1SFGMPzUVYQ52b7RC7fTfiaPHm3ZyTRZuHmer ' +
-              'is pinned recursively'
-            )
-            done()
-          })
-        })
-      })
-
-      it('unpins recursively', done => {
-        api.inject({
-          method: 'POST',
-          url: `/api/v0/pin/rm?arg=${hashes.planets}`
-        }, (res) => {
-          expect(res.statusCode).to.equal(200)
-          expect(res.result).to.deep.equal({Pins: [hashes.planets]})
           done()
         })
       })
