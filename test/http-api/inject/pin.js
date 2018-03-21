@@ -130,10 +130,10 @@ module.exports = (http) => {
       it('recursively', done => {
         api.inject({
           method: 'POST',
-          url: `/api/v0/pin/add?arg=${hashes.planets}`
+          url: `/api/v0/pin/add?arg=${hashes.root1}`
         }, (res) => {
           expect(res.statusCode).to.equal(200)
-          expect(res.result).to.deep.equal({Pins: [hashes.planets]})
+          expect(res.result.Pins).to.deep.eql([hashes.root1])
           done()
         })
       })
@@ -141,10 +141,13 @@ module.exports = (http) => {
       it('directly', done => {
         api.inject({
           method: 'POST',
-          url: `/api/v0/pin/add?arg=${hashes.leaf}&recursive=false`
+          url: `/api/v0/pin/add?arg=${hashes.root1}&recursive=false`
         }, (res) => {
-          expect(res.statusCode).to.equal(200)
-          expect(res.result).to.deep.equal({Pins: [hashes.leaf]})
+          // by directly pinning a node that is already recursively pinned,
+          // it should error and verifies that the endpoint is parsing
+          // the recursive arg correctly.
+          expect(res.statusCode).to.equal(500)
+          expect(res.result.Message).to.match(/already pinned recursively/)
           done()
         })
       })
