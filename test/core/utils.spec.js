@@ -59,7 +59,7 @@ describe('utils', () => {
     })
   })
 
-  describe.only('resolvePaths', function () {
+  describe('resolvePaths', function () {
     this.timeout(80 * 1000)
     const fixtures = [
       'test/fixtures/planets/mercury/wiki.md',
