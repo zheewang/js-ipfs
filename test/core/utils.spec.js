@@ -6,7 +6,9 @@ const chai = require('chai')
 const dirtyChai = require('dirty-chai')
 const expect = chai.expect
 chai.use(dirtyChai)
-const multihashes = require('multihashes')
+
+const fs = require('fs')
+const fromB58String = require('multihashes').fromB58String
 
 // This gets replaced by `create-repo-browser.js` in the browser
 const createTempRepo = require('../utils/create-repo-nodejs.js')
@@ -14,40 +16,40 @@ const IPFS = require('../../src/core')
 const utils = require('../../src/core/utils')
 
 describe('utils', () => {
-  const rootHashString = 'QmUhUuiTKkkK8J6JZ9zmj8iNHPuNfGYcszgRumzhHBxEEU'
-  const rootHash = multihashes.fromB58String(rootHashString)
-  const rootPathString = `/ipfs/${rootHashString}`
-  const aboutHashString = 'QmZTR5bcpQD7cFgTorqxZDYaew1Wqgfbd2ud9QqGPAkK2V'
-  const aboutHash = multihashes.fromB58String(aboutHashString)
-  const aboutPathString = `${rootPathString}/about`
+  const rootHash = 'QmTAMavb995EHErSrKo7mB8dYkpaSJxu6ys1a6XJyB2sys'
+  const rootPath = `/ipfs/${rootHash}`
+  const rootMultihash = fromB58String(rootHash)
+  const aboutHash = 'QmbJCNKXJqVK8CzbjpNFz2YekHwh3CSHpBA86uqYg3sJ8q'
+  const aboutPath = `${rootPath}/mercury`
+  const aboutMultihash = fromB58String(aboutHash)
 
   describe('parseIpfsPath', () => {
     it('parses path with no links', function () {
-      expect(utils.parseIpfsPath(rootHashString))
+      expect(utils.parseIpfsPath(rootHash))
         .to.deep.equal({
-          hash: rootHashString,
+          hash: rootHash,
           links: []
         })
     })
 
     it('parses path with links', function () {
-      expect(utils.parseIpfsPath(`${rootHashString}/docs/index`))
+      expect(utils.parseIpfsPath(`${rootHash}/docs/index`))
         .to.deep.equal({
-          hash: rootHashString,
+          hash: rootHash,
           links: ['docs', 'index']
         })
     })
 
     it('parses path with /ipfs/ prefix', function () {
-      expect(utils.parseIpfsPath(`/ipfs/${rootHashString}/about`))
+      expect(utils.parseIpfsPath(`/ipfs/${rootHash}/about`))
         .to.deep.equal({
-          hash: rootHashString,
+          hash: rootHash,
           links: ['about']
         })
     })
 
     it('returns error for malformed path', function () {
-      const fn = () => utils.parseIpfsPath(`${rootHashString}//about`)
+      const fn = () => utils.parseIpfsPath(`${rootHash}//about`)
       expect(fn).to.throw('invalid ipfs ref path')
     })
 
@@ -59,75 +61,64 @@ describe('utils', () => {
 
   describe.only('resolvePaths', function () {
     this.timeout(80 * 1000)
+    const fixtures = [
+      'test/fixtures/planets/mercury/wiki.md',
+      'test/fixtures/planets/solar-system.md'
+    ].map(path => ({
+      path,
+      content: fs.readFileSync(path)
+    }))
+
     let node
     let repo
 
-    before((done) => {
+    before(done => {
       repo = createTempRepo()
       node = new IPFS({
         repo: repo
       })
-      node.once('ready', done)
+      node.once('ready', () => node.files.add(fixtures, done))
     })
 
-    after((done) => {
+    after(done => {
       repo.teardown(done)
     })
 
-    it('normalizes hash string to array with multihash object', (done) => {
-      utils.resolvePaths(node, rootHashString, (err, hashes) => {
+    it('handles base58 hash format', (done) => {
+      utils.resolvePaths(node, rootHash, (err, hashes) => {
         expect(err).to.not.exist()
         expect(hashes.length).to.equal(1)
-        expect(hashes[0]).to.deep.equal(rootHash)
+        expect(hashes[0]).to.deep.equal(rootMultihash)
         done()
       })
     })
 
-    it('normalizes array of hash strings to array of multihash objects', (done) => {
-      utils.resolvePaths(node, [rootHashString, aboutHashString], (err, hashes) => {
-        expect(err).to.not.exist()
-        expect(hashes.length).to.equal(2)
-        expect(hashes[0]).to.deep.equal(rootHash)
-        expect(hashes[1]).to.deep.equal(aboutHash)
-        done()
-      })
-    })
-
-    it('normalizes multihash object to array with multihash object', (done) => {
-      utils.resolvePaths(node, aboutHash, (err, hashes) => {
+    it('handles multihash format', (done) => {
+      utils.resolvePaths(node, aboutMultihash, (err, hashes) => {
         expect(err).to.not.exist()
         expect(hashes.length).to.equal(1)
-        expect(hashes[0]).to.deep.equal(aboutHash)
+        expect(hashes[0]).to.deep.equal(aboutMultihash)
         done()
       })
     })
 
-    it('normalizes array of multihash objects to array of multihash objects', (done) => {
-      utils.resolvePaths(node, [rootHash, aboutHash], (err, hashes) => {
-        expect(err).to.not.exist()
-        expect(hashes.length).to.equal(2)
-        expect(hashes[0]).to.deep.equal(rootHash)
-        expect(hashes[1]).to.deep.equal(aboutHash)
-        done()
-      })
-    })
-
-    it('normalizes ipfs path string to array with multihash object', function (done) {
+    it('handles ipfs paths format', function (done) {
       this.timeout(200 * 1000)
-      utils.resolvePaths(node, aboutPathString, (err, hashes) => {
+      utils.resolvePaths(node, aboutPath, (err, hashes) => {
         expect(err).to.not.exist()
         expect(hashes.length).to.equal(1)
-        expect(hashes[0]).to.deep.equal(aboutHash)
+        expect(hashes[0]).to.deep.equal(aboutMultihash)
         done()
       })
     })
 
-    it('normalizes array of ipfs path strings to array with multihash objects', (done) => {
-      utils.resolvePaths(node, [aboutPathString, rootPathString], (err, hashes) => {
+    it('handles an array', (done) => {
+      utils.resolvePaths(node, [rootHash, rootPath, rootMultihash], (err, hashes) => {
         expect(err).to.not.exist()
-        expect(hashes.length).to.equal(2)
-        expect(hashes[0]).to.deep.equal(aboutHash)
-        expect(hashes[1]).to.deep.equal(rootHash)
+        expect(hashes.length).to.equal(3)
+        expect(hashes[0]).to.deep.equal(rootMultihash)
+        expect(hashes[1]).to.deep.equal(rootMultihash)
+        expect(hashes[2]).to.deep.equal(rootMultihash)
         done()
       })
     })
@@ -140,9 +131,9 @@ describe('utils', () => {
     })
 
     it(`should error when a link doesn't exist`, function (done) {
-      utils.resolvePaths(node, `${aboutPathString}/fusion`, err => {
+      utils.resolvePaths(node, `${aboutPath}/fusion`, err => {
         expect(err.message).to.include(
-          `no link named "fusion" under QmZTR5bcpQD7cFgTorqxZDYaew1Wqgfbd2ud9QqGPAkK2V`
+          `no link named "fusion" under QmbJCNKXJqVK8CzbjpNFz2YekHwh3CSHpBA86uqYg3sJ8q`
         )
         done()
       })
