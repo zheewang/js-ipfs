@@ -1,11 +1,8 @@
 /* eslint-env mocha */
+/* eslint max-nested-callbacks: ["error", 8] */
 'use strict'
 
 const expect = require('chai').expect
-const fs = require('fs')
-const FormData = require('form-data')
-const streamToPromise = require('stream-to-promise')
-const each = require('async/each')
 
 // We use existing pin structure in the go-ipfs-repo fixture
 // so that we don't have to stream a bunch of object/put operations
@@ -24,13 +21,13 @@ const each = require('async/each')
 
 const pins = {
   root1: 'QmVtU7ths96fMgZ8YSZAbKghyieq7AjxNdcqyVzxTt3qVe',
-    c1: 'QmZTR5bcpQD7cFgTorqxZDYaew1Wqgfbd2ud9QqGPAkK2V',
-    c2: 'QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y',
-    c3: 'QmY5heUM5qgRubMDD1og9fhCPA6QdkMp3QCwd4s7gJsyE7',
-    c4: 'QmUzLxaXnM8RYCPEqLDX5foToi5aNZHqfYr285w2BKhkft',
-    c5: 'QmPZ9gcCEpqKTo6aq61g2nXGUhM4iCL3ewB6LDXZCtioEB',
-    c6: 'QmTumTjvcYCAvRRwQ8sDRxh8ezmrcr88YFU7iYNroGGTBZ',
-  root2: 'QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn',
+  c1: 'QmZTR5bcpQD7cFgTorqxZDYaew1Wqgfbd2ud9QqGPAkK2V',
+  c2: 'QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y',
+  c3: 'QmY5heUM5qgRubMDD1og9fhCPA6QdkMp3QCwd4s7gJsyE7',
+  c4: 'QmUzLxaXnM8RYCPEqLDX5foToi5aNZHqfYr285w2BKhkft',
+  c5: 'QmPZ9gcCEpqKTo6aq61g2nXGUhM4iCL3ewB6LDXZCtioEB',
+  c6: 'QmTumTjvcYCAvRRwQ8sDRxh8ezmrcr88YFU7iYNroGGTBZ',
+  root2: 'QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn'
 }
 
 module.exports = (http) => {
@@ -40,7 +37,6 @@ module.exports = (http) => {
     before(() => {
       api = http.api.server.select('API')
     })
-
 
     describe('rm', () => {
       it('fails on invalid args', done => {

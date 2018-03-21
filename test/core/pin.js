@@ -1,3 +1,4 @@
+/* eslint max-nested-callbacks: ["error", 8] */
 /* eslint-env mocha */
 'use strict'
 
@@ -17,7 +18,6 @@ const expectTimeout = require('../utils/expect-timeout')
 //   solar-system.md
 //   mercury/
 //    wiki.md
-const fixturePath = 'test/fixtures/planets'
 const pins = {
   root: 'QmTAMavb995EHErSrKo7mB8dYkpaSJxu6ys1a6XJyB2sys',
   solarWiki: 'QmTMbkDfvHwq3Aup6Nxqn3KKw9YnoKzcZvuArAfQ9GF3QG',
@@ -158,7 +158,7 @@ describe('pin', function () {
         .then(() => Promise.all([
           // solarWiki is pinned both directly and indirectly o.O
           expectPinned(pins.solarWiki, pin.types.direct),
-          expectPinned(pins.solarWiki, pin.types.indirect),
+          expectPinned(pins.solarWiki, pin.types.indirect)
         ]))
     })
 
@@ -231,7 +231,7 @@ describe('pin', function () {
           )
       })
 
-      it('recursive', function() {
+      it('recursive', function () {
         return pin.ls({ type: 'recursive' })
           .then(out =>
             expect(out).to.deep.eql([

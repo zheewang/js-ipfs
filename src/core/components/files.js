@@ -18,7 +18,6 @@ const CID = require('cids')
 const toB58String = require('multihashes').toB58String
 
 function noop () {}
-function identity (x) { return x }
 
 function prepareFile (self, opts, file, callback) {
   opts = opts || {}
