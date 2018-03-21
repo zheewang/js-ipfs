@@ -13,111 +13,162 @@ const each = require('async/each')
 //    `branch
 //      `subLeaf
 
-const keys = {
-  root: 'QmWQwS2Xh1SFGMPzUVYQ52b7RC7fTfiaPHm3ZyTRZuHmer',
-  leaf: 'QmaZoTQ6wFe7EtvaePBUeXavfeRqCAq3RUMomFxBpZLrLA',
-  branch: 'QmNxjjP7dtx6pzxWGBRCrgmjX3JqKL7uF2Kjx7ExiZDbSB',
-  subLeaf: 'QmUzzznkyQL7FjjBztG3D1tTjBuxeArLceDZnuSowUggXL'
+// const hashes = {
+//   root: 'QmWQwS2Xh1SFGMPzUVYQ52b7RC7fTfiaPHm3ZyTRZuHmer',
+//   leaf: 'QmaZoTQ6wFe7EtvaePBUeXavfeRqCAq3RUMomFxBpZLrLA',
+//   branch: 'QmNxjjP7dtx6pzxWGBRCrgmjX3JqKL7uF2Kjx7ExiZDbSB',
+//   subLeaf: 'QmUzzznkyQL7FjjBztG3D1tTjBuxeArLceDZnuSowUggXL'
+// }
+
+const hashes = {
+  root1: 'QmVtU7ths96fMgZ8YSZAbKghyieq7AjxNdcqyVzxTt3qVe',
+    c1: 'QmZTR5bcpQD7cFgTorqxZDYaew1Wqgfbd2ud9QqGPAkK2V',
+    c2: 'QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y',
+    c3: 'QmY5heUM5qgRubMDD1og9fhCPA6QdkMp3QCwd4s7gJsyE7',
+    c4: 'QmUzLxaXnM8RYCPEqLDX5foToi5aNZHqfYr285w2BKhkft',
+    c5: 'QmPZ9gcCEpqKTo6aq61g2nXGUhM4iCL3ewB6LDXZCtioEB',
+    c6: 'QmTumTjvcYCAvRRwQ8sDRxh8ezmrcr88YFU7iYNroGGTBZ',
+  root2: 'QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn',
 }
+
+// const hashes = {
+//   planets: 'QmTAMavb995EHErSrKo7mB8dYkpaSJxu6ys1a6XJyB2sys',
+//   'test-data/mercury.json': 'QmTMbkDfvHwq3Aup6Nxqn3KKw9YnoKzcZvuArAfQ9GF3QG',
+//   'planets/mercury': 'QmbJCNKXJqVK8CzbjpNFz2YekHwh3CSHpBA86uqYg3sJ8q',
+//   'planets/mercury/wiki.md': 'QmVgSHAdMxFAuMP2JiMAYkB8pCWP1tcB9djqvq8GKAFiHi'
+// }
 
 module.exports = (http) => {
   describe('pin', () => {
     let api
 
-    before((done) => {
+    before(done => {
       // add test tree to repo
       api = http.api.server.select('API')
-      const putFile = (filename, cb) => {
-        const filePath = `test/test-data/tree/${filename}.json`
-        const form = new FormData()
-        form.append('file', fs.createReadStream(filePath))
-        const headers = form.getHeaders()
-        streamToPromise(form).then((payload) => {
-          api.inject({
-            method: 'POST',
-            url: '/api/v0/object/put',
-            headers: headers,
-            payload: payload
-          }, (res) => {
-            expect(res.statusCode).to.equal(200)
-            cb()
-          })
-        })
-      }
-      each(Object.keys(keys), putFile, (err) => {
-        expect(err).to.not.exist()
-        done()
-      })
+      // const putFile = (filename, cb) => {
+      //   const form = new FormData()
+      //   const filePath = `test/fixtures/${filename}`
+      //   form.append('file', fs.createReadStream(filePath))
+      //   const headers = form.getHeaders()
+      //
+      //   streamToPromise(form).then(payload => {
+      //     // console.log('buffer:', Buffer.isBuffer(payload), payload)
+      //     api.inject({
+      //       method: 'POST',
+      //       url: '/api/v0/object/put',
+      //       headers: headers,
+      //       payload: payload
+      //     }, (res) => {
+      //       console.log('result:', res.result)
+      //       expect(res.statusCode).to.equal(200)
+      //       cb()
+      //     })
+      //   })
+      // }
+      //
+      // each(Object.keys(hashes), putFile, (err) => {
+      //   expect(err).to.not.exist()
+      //   done()
+      // })
+      done()
     })
 
     describe('/pin/add', () => {
-      it('pins object recursively by default', (done) => {
+      it('pins object recursively by default', done => {
         api.inject({
           method: 'POST',
-          url: `/api/v0/pin/add?arg=${keys.root}`
+          url: `/api/v0/pin/add?arg=${hashes.planets}`
         }, (res) => {
           expect(res.statusCode).to.equal(200)
-          expect(res.result).to.deep.equal({Pins: [keys.root]})
+          expect(res.result).to.deep.equal({Pins: [hashes.planets]})
           done()
         })
       })
     })
 
     describe('/pin/add (direct)', () => {
-      it('pins object directly if specified', (done) => {
+      it('pins object directly if specified', done => {
         api.inject({
           method: 'POST',
-          url: `/api/v0/pin/add?arg=${keys.leaf}&recursive=false`
+          url: `/api/v0/pin/add?arg=${hashes.leaf}&recursive=false`
         }, (res) => {
           expect(res.statusCode).to.equal(200)
-          expect(res.result).to.deep.equal({Pins: [keys.leaf]})
+          expect(res.result).to.deep.equal({Pins: [hashes.leaf]})
           done()
         })
       })
     })
 
-    describe('/pin/ls (with path)', () => {
-      it('finds specified pinned object', (done) => {
+    describe('ls', () => {
+      it('errors on invalid args', done => {
         api.inject({
           method: 'GET',
-          url: `/api/v0/pin/ls?arg=/ipfs/${keys.root}/branch/subLeaf`
-        }, (res) => {
-          expect(res.statusCode).to.equal(200)
-          expect(res.result.Keys[keys.subLeaf].Type)
-            .to.equal(`indirect through ${keys.root}`)
+          url: `/api/v0/pin/ls?arg=invalid`
+        }, res => {
+          expect(res.statusCode).to.equal(500)
+          expect(res.result.Message).to.match(/invalid ipfs ref path/)
           done()
         })
       })
-    })
 
-    describe('/pin/ls (without path or type)', () => {
-      it('finds all pinned objects', (done) => {
+      it('finds all pinned objects', done => {
         api.inject({
           method: 'GET',
           url: '/api/v0/pin/ls'
         }, (res) => {
+          const keys = res.result.Keys
           expect(res.statusCode).to.equal(200)
-          expect(res.result.Keys[keys.root].Type).to.equal('recursive')
-          expect(res.result.Keys[keys.leaf].Type).to.equal('direct')
-          expect(res.result.Keys[keys.branch].Type).to.equal('indirect')
-          expect(res.result.Keys[keys.subLeaf].Type).to.equal('indirect')
+          expect(keys).to.have.all.keys(Object.values(hashes))
+          done()
+        })
+      })
+
+      it('finds specific pinned objects', done => {
+        api.inject({
+          method: 'GET',
+          url: `/api/v0/pin/ls?arg=${hashes.c1}`
+        }, (res) => {
+          const keys = res.result.Keys
+          expect(res.statusCode).to.equal(200)
+          expect(keys[hashes.c1].Type)
+            .to.equal(`indirect through ${hashes.root1}`)
+          done()
+        })
+      })
+
+      it('finds pins of type', done => {
+        api.inject({
+          method: 'GET',
+          url: `/api/v0/pin/ls?type=recursive`
+        }, (res) => {
+          const keys = res.result.Keys
+          expect(res.statusCode).to.equal(200)
+          expect(keys).to.deep.eql({
+            QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn: {
+              Type: 'recursive'
+            },
+            QmVtU7ths96fMgZ8YSZAbKghyieq7AjxNdcqyVzxTt3qVe: {
+              Type: 'recursive'
+            }
+          })
           done()
         })
       })
     })
 
-    describe('/pin/rm (direct)', () => {
-      it('unpins only directly pinned objects if specified', (done) => {
+
+    describe('rm (direct)', () => {
+      it('unpins only directly pinned objects if specified', done => {
         api.inject({
           method: 'POST',
-          url: `/api/v0/pin/rm?arg=${keys.leaf}&recursive=false`
+          url: `/api/v0/pin/rm?arg=${hashes.leaf}&recursive=false`
         }, (res) => {
           expect(res.statusCode).to.equal(200)
-          expect(res.result).to.deep.equal({Pins: [keys.leaf]})
+          expect(res.result).to.deep.equal({Pins: [hashes.leaf]})
 
           api.inject({
             method: 'POST',
-            url: `/api/v0/pin/rm?arg=${keys.root}&recursive=false`
+            url: `/api/v0/pin/rm?arg=${hashes.planets}&recursive=false`
           }, (res) => {
             expect(res.statusCode).to.equal(500)
             expect(res.result.Message).to.equal(
@@ -129,16 +180,14 @@ module.exports = (http) => {
           })
         })
       })
-    })
 
-    describe('/pin/rm', () => {
-      it('unpins recursively by default', (done) => {
+      it('unpins recursively', done => {
         api.inject({
           method: 'POST',
-          url: `/api/v0/pin/rm?arg=${keys.root}`
+          url: `/api/v0/pin/rm?arg=${hashes.planets}`
         }, (res) => {
           expect(res.statusCode).to.equal(200)
-          expect(res.result).to.deep.equal({Pins: [keys.root]})
+          expect(res.result).to.deep.equal({Pins: [hashes.planets]})
           done()
         })
       })
