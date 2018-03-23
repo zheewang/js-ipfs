@@ -26,23 +26,32 @@ function readHeader (rootNode) {
   const hdrLength = varint.decode(rootData)
   const vBytes = varint.decode.bytes
   if (vBytes <= 0) {
-    return { err: 'Invalid Set header length' }
+    throw new Error('Invalid Set header length')
   }
   if (vBytes + hdrLength > rootData.length) {
-    return { err: 'Impossibly large set header length' }
+    throw new Error('Impossibly large set header length')
   }
   const hdrSlice = rootData.slice(vBytes, hdrLength + vBytes)
   const header = pb.Set.decode(hdrSlice)
   if (header.version !== 1) {
-    return { err: 'Unsupported Set version: ' + header.version }
+    throw new Error(`Unsupported Set version: ${header.version}`)
   }
   if (header.fanout > rootNode.links.length) {
-    return { err: 'Impossibly large fanout' }
+    throw new Error('Impossibly large fanout')
   }
   return {
     header: header,
     data: rootData.slice(hdrLength + vBytes)
   }
+}
+
+function hash (seed, key) {
+  const buf = Buffer.alloc(4)
+  buf.writeUInt32LE(seed, 0)
+  const data = Buffer.concat([
+    buf, Buffer.from(toB58String(key))
+  ])
+  return fnv1a(data.toString('binary'))
 }
 
 exports = module.exports = function (dag) {
@@ -117,11 +126,13 @@ exports = module.exports = function (dag) {
       }
       logInternalKey(emptyKey)
 
+      // console.log('storing items:', items)
       if (items.length <= maxItems) {
         // the items will fit in a single root node
         const itemLinks = []
         const itemData = []
         const indices = []
+
         for (let i = 0; i < items.length; i++) {
           itemLinks.push(new DAGLink('', 1, items[i].key))
           itemData.push(items[i].data || Buffer.alloc(0))
@@ -132,43 +143,55 @@ exports = module.exports = function (dag) {
           if (x) { return x }
           return (a < b ? -1 : 1)
         })
-        const sortedLinks = indices.map((i) => { return itemLinks[i] })
-        const sortedData = indices.map((i) => { return itemData[i] })
+
+        const sortedLinks = indices.map(i => { return itemLinks[i] })
+        const sortedData = indices.map(i => { return itemData[i] })
         rootLinks = rootLinks.concat(sortedLinks)
         rootData = Buffer.concat([rootData].concat(sortedData))
+
+        // console.log('rootData:', rootData)
+        // console.log('rootLinks:', rootData)
         DAGNode.create(rootData, rootLinks, (err, rootNode) => {
           if (err) { return callback(err) }
           return callback(null, rootNode)
         })
       } else {
         // need to split up the items into multiple root nodes
-        // (using go-ipfs "wasteful but simple" approach for consistency)
+        // (using go-ipfs' "wasteful but simple" approach for consistency)
         _subcalls = _subcalls || 0
         _done = _done || 0
         const hashed = {}
-        const hashFn = (seed, key) => {
-          const buf = Buffer.alloc(4)
-          buf.writeUInt32LE(seed, 0)
-          const data = Buffer.concat([
-            buf, Buffer.from(toB58String(key))
-          ])
-          return fnv1a(data.toString('binary'))
-        }
+
         // items will be distributed among `defaultFanout` bins
-        for (let i = 0; i < items.length; i++) {
-          let h = hashFn(seed, items[i].key) % defaultFanout
-          hashed[h] = hashed[h] || []
-          hashed[h].push(items[i])
-        }
-        const storeItemsCb = (err, child) => {
+        items.forEach(item => {
+          const bin = hash(seed, item.key) % defaultFanout
+          hashed[bin] = hashed[bin] || []
+          hashed[bin].push(item)
+        })
+
+        const hashedKeys = Object.keys(hashed)
+        _subcalls += hashedKeys.length
+        hashedKeys.forEach(bin => {
+          pinSet.storeItems(
+            hashed[bin],
+            logInternalKey,
+            (err, child) => storeItemsCb(err, child, bin),
+            _depth + 1,
+            _subcalls,
+            _done
+          )
+        })
+
+        function storeItemsCb (err, child, bin) {
           if (err) { return callback(err) }
-          dag.put(child, (err) => {
+          const cid = new CID(child._multihash)
+          dag.put(child, { cid }, (err) => {
             if (err) { return callback(err) }
+
             logInternalKey(child.multihash)
-            rootLinks[this.h] = new DAGLink(
-              '', child.size, child.multihash
-            )
+            rootLinks[bin] = new DAGLink('', child.size, child.multihash)
             _done++
+
             if (_done === _subcalls) {
               // all finished
               DAGNode.create(rootData, rootLinks, (err, rootNode) => {
@@ -178,18 +201,6 @@ exports = module.exports = function (dag) {
             }
           })
         }
-        const hashedKeys = Object.keys(hashed)
-        _subcalls += hashedKeys.length
-        hashedKeys.forEach(h => {
-          pinSet.storeItems(
-            hashed[h],
-            logInternalKey,
-            storeItemsCb.bind({h: h}),
-            _depth + 1,
-            _subcalls,
-            _done
-          )
-        })
       }
     },
 
@@ -203,9 +214,8 @@ exports = module.exports = function (dag) {
       dag.get(new CID(link.multihash), (err, res) => {
         if (err) { return callback(err) }
         const keys = []
-        const walkerFn = (link) => {
-          keys.push(link.multihash)
-        }
+        const walkerFn = link => keys.push(link.multihash)
+
         pinSet.walkItems(res.value, walkerFn, logInternalKey, (err) => {
           if (err) { return callback(err) }
           return callback(null, keys)
@@ -215,9 +225,13 @@ exports = module.exports = function (dag) {
 
     walkItems: (node, walkerFn, logInternalKey, callback) => {
       callback = once(callback)
-      const h = readHeader(node)
-      if (h.err) { return callback(h.err) }
-      const fanout = h.header.fanout
+      let pb
+      try {
+        pb = readHeader(node)
+      } catch (err) {
+        return callback(err)
+      }
+      const fanout = pb.header.fanout
       let subwalkCount = 0
       let finishedCount = 0
 
@@ -233,7 +247,7 @@ exports = module.exports = function (dag) {
         const link = node.links[i]
         if (i >= fanout) {
           // item link
-          walkerFn(link, i, h.data)
+          walkerFn(link, i, pb.data)
         } else {
           // fanout link
           logInternalKey(link.multihash)
