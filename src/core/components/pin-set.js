@@ -1,7 +1,6 @@
 'use strict'
 
 const multihashes = require('multihashes')
-const toB58String = multihashes.toB58String
 const CID = require('cids')
 const protobuf = require('protons')
 const fnv1a = require('fnv1a')
@@ -18,6 +17,10 @@ const emptyKey = multihashes.fromB58String(emptyKeyHash)
 const defaultFanout = 256
 const maxItems = 8192
 const pb = protobuf(pbSchema)
+
+function toB58String (hash) {
+  return new CID(hash).toBaseEncodedString()
+}
 
 function readHeader (rootNode) {
   // rootNode.data should be a buffer of the format:
@@ -70,15 +73,15 @@ exports = module.exports = function (dag) {
         // all nodes have been checked
         return callback(null, false)
       }
-      root.links.forEach((link) => {
-        const bs58link = toB58String(link.multihash)
-        if (bs58link === childhash) {
+      root.links.forEach(link => {
+        const bs58Link = toB58String(link.multihash)
+        if (bs58Link === childhash) {
           return callback(null, true)
         }
 
         // don't check the same links twice
-        if (bs58link in _seen) { return }
-        _seen[bs58link] = true
+        if (bs58Link in _seen) { return }
+        _seen[bs58Link] = true
 
         dag.get(new CID(link.multihash), (err, res) => {
           if (err) { return callback(err) }
@@ -91,13 +94,11 @@ exports = module.exports = function (dag) {
     },
 
     storeSet: (keys, logInternalKey, callback) => {
-      callback = once(callback)
-      const items = keys.map((key) => {
-        return {
-          key: key,
-          data: null
-        }
-      })
+      const items = keys.map(key => ({
+        key: key,
+        data: null
+      }))
+
       pinSet.storeItems(items, logInternalKey, (err, rootNode) => {
         if (err) { return callback(err) }
         const opts = { cid: new CID(rootNode.multihash) }
@@ -111,11 +112,10 @@ exports = module.exports = function (dag) {
 
     storeItems: (items, logInternalKey, callback, _depth, _subcalls, _done) => {
       callback = once(callback)
-      const seed = _depth
       const pbHeader = pb.Set.encode({
         version: 1,
         fanout: defaultFanout,
-        seed: seed
+        seed: _depth
       })
       let rootData = Buffer.concat([
         Buffer.from(varint.encode(pbHeader.length)), pbHeader
@@ -126,7 +126,6 @@ exports = module.exports = function (dag) {
       }
       logInternalKey(emptyKey)
 
-      // console.log('storing items:', items)
       if (items.length <= maxItems) {
         // the items will fit in a single root node
         const itemLinks = []
@@ -149,8 +148,6 @@ exports = module.exports = function (dag) {
         rootLinks = rootLinks.concat(sortedLinks)
         rootData = Buffer.concat([rootData].concat(sortedData))
 
-        // console.log('rootData:', rootData)
-        // console.log('rootLinks:', rootData)
         DAGNode.create(rootData, rootLinks, (err, rootNode) => {
           if (err) { return callback(err) }
           return callback(null, rootNode)
@@ -164,7 +161,7 @@ exports = module.exports = function (dag) {
 
         // items will be distributed among `defaultFanout` bins
         items.forEach(item => {
-          const bin = hash(seed, item.key) % defaultFanout
+          const bin = hash(_depth, item.key) % defaultFanout
           hashed[bin] = hashed[bin] || []
           hashed[bin].push(item)
         })
@@ -211,12 +208,12 @@ exports = module.exports = function (dag) {
         return callback(new Error('No link found with name ' + name))
       }
       logInternalKey(link.multihash)
+
       dag.get(new CID(link.multihash), (err, res) => {
         if (err) { return callback(err) }
         const keys = []
         const walkerFn = link => keys.push(link.multihash)
-
-        pinSet.walkItems(res.value, walkerFn, logInternalKey, (err) => {
+        pinSet.walkItems(res.value, walkerFn, logInternalKey, err => {
           if (err) { return callback(err) }
           return callback(null, keys)
         })
@@ -225,13 +222,13 @@ exports = module.exports = function (dag) {
 
     walkItems: (node, walkerFn, logInternalKey, callback) => {
       callback = once(callback)
-      let pb
+      let pbh
       try {
-        pb = readHeader(node)
+        pbh = readHeader(node)
       } catch (err) {
         return callback(err)
       }
-      const fanout = pb.header.fanout
+      const fanout = pbh.header.fanout
       let subwalkCount = 0
       let finishedCount = 0
 
@@ -247,12 +244,13 @@ exports = module.exports = function (dag) {
         const link = node.links[i]
         if (i >= fanout) {
           // item link
-          walkerFn(link, i, pb.data)
+          walkerFn(link, i, pbh.data)
         } else {
           // fanout link
           logInternalKey(link.multihash)
           if (!emptyKey.equals(link.multihash)) {
             subwalkCount++
+
             dag.get(new CID(link.multihash), (err, res) => {
               if (err) { return callback(err) }
               pinSet.walkItems(
