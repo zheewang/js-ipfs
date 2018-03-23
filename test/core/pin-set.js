@@ -66,7 +66,7 @@ describe('pinset', function () {
     })
   })
 
-  after(done => repo.teardown(done))
+  after(done => ipfs.stop(done))
 
   describe('storeItems', function () {
     it('generates a root node with links and hash', function (done) {
